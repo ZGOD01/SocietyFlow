@@ -9,6 +9,14 @@ export const APP_NAV_ITEMS: NavItem[] = [
     description: "Personal and society status overview",
   },
   {
+    title: "Management Console",
+    href: "/management/dashboard",
+    iconName: "shield-checkmark-outline",
+    badge: "Mgmt",
+    allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN"],
+    description: "Managing committee oversight, NOCs and verifications",
+  },
+  {
     title: "Personal Vault",
     href: "/documents",
     iconName: "folder-open-outline",
@@ -48,7 +56,7 @@ export const APP_NAV_ITEMS: NavItem[] = [
   {
     title: "Admin Console",
     href: "/admin",
-    iconName: "shield-checkmark-outline",
+    iconName: "settings-outline",
     badge: "Sys",
     allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN"],
     description: "Society configuration and member roles",

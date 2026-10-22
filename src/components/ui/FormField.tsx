@@ -38,18 +38,18 @@ export const FormField = React.forwardRef<HTMLInputElement, FormFieldProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-xs font-semibold uppercase tracking-wider text-[#1A1A1A] flex items-center justify-between"
+            className="text-xs font-semibold text-slate-700 flex items-center justify-between"
           >
             <span>
               {label}
-              {required && <span className="text-[#F43F5E] ml-1">*</span>}
+              {required && <span className="text-rose-500 ml-1">*</span>}
             </span>
           </label>
         )}
 
-        <div className="relative flex items-center">
+        <div className="relative flex items-center group">
           {leftIcon && (
-            <div className="absolute left-3.5 text-[#9CA3AF] pointer-events-none flex items-center">
+            <div className="absolute left-3.5 text-slate-400 group-focus-within:text-indigo-600 pointer-events-none flex items-center transition-colors">
               <IonIcon name={leftIcon} size={18} />
             </div>
           )}
@@ -59,14 +59,14 @@ export const FormField = React.forwardRef<HTMLInputElement, FormFieldProps>(
             id={inputId}
             disabled={disabled}
             className={cn(
-              "w-full h-11 px-3.5 bg-white text-[#1A1A1A] placeholder:text-[#9CA3AF] text-sm rounded-xl border transition-all duration-150",
-              "focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5]",
+              "w-full h-11 px-3.5 bg-white/80 backdrop-blur-xs text-slate-900 placeholder:text-slate-400 text-sm rounded-xl border transition-all duration-200 shadow-2xs",
+              "focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white",
               leftIcon ? "pl-10" : "pl-3.5",
               rightIcon ? "pr-10" : "pr-3.5",
               error
-                ? "border-[#F43F5E] focus:ring-[#F43F5E]/20 focus:border-[#F43F5E]"
-                : "border-[#E5E7EB] hover:border-[#D1D5DB]",
-              disabled && "bg-[#F8F9FA] text-[#9CA3AF] cursor-not-allowed",
+                ? "border-rose-400 bg-rose-50/20 focus:ring-rose-500/20 focus:border-rose-500"
+                : "border-slate-200/90 hover:border-slate-300",
+              disabled && "bg-slate-50 text-slate-400 cursor-not-allowed",
               className
             )}
             {...props}
@@ -78,7 +78,7 @@ export const FormField = React.forwardRef<HTMLInputElement, FormFieldProps>(
               onClick={onRightIconClick}
               disabled={disabled || !onRightIconClick}
               className={cn(
-                "absolute right-3.5 text-[#9CA3AF] hover:text-[#1A1A1A] flex items-center transition-colors",
+                "absolute right-3.5 text-slate-400 hover:text-slate-700 flex items-center transition-colors cursor-pointer",
                 !onRightIconClick && "pointer-events-none"
               )}
             >
@@ -88,12 +88,12 @@ export const FormField = React.forwardRef<HTMLInputElement, FormFieldProps>(
         </div>
 
         {error ? (
-          <p className="text-xs text-[#F43F5E] flex items-center gap-1 mt-0.5">
+          <p className="text-xs text-rose-500 flex items-center gap-1 mt-0.5 font-medium">
             <IonIcon name="alert-circle-outline" size={13} className="shrink-0" />
             <span>{error}</span>
           </p>
         ) : helperText ? (
-          <p className="text-xs text-[#6B7280] mt-0.5">{helperText}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{helperText}</p>
         ) : null}
       </div>
     );

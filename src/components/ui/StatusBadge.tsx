@@ -8,7 +8,8 @@ export type BadgeVariant =
   | "error"
   | "info"
   | "neutral"
-  | "hero";
+  | "hero"
+  | "gradient";
 
 export interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
@@ -16,39 +17,45 @@ export interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> 
   iconName?: IonIconName | string;
   size?: "sm" | "md";
   dot?: boolean;
+  pulse?: boolean;
   className?: string;
 }
 
 const badgeVariants: Record<BadgeVariant, { container: string; dot: string; icon: string }> = {
   success: {
-    container: "bg-[#ECFDF5] text-[#10B981] border border-[#A7F3D0]",
-    dot: "bg-[#10B981]",
-    icon: "text-[#10B981]",
+    container: "bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs",
+    dot: "bg-emerald-500",
+    icon: "text-emerald-600",
   },
   warning: {
-    container: "bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]",
-    dot: "bg-[#F59E0B]",
-    icon: "text-[#D97706]",
+    container: "bg-amber-50 text-amber-700 border border-amber-200/80 shadow-2xs",
+    dot: "bg-amber-500",
+    icon: "text-amber-600",
   },
   error: {
-    container: "bg-[#FFF1F2] text-[#E11D48] border border-[#FECDD3]",
-    dot: "bg-[#F43F5E]",
-    icon: "text-[#E11D48]",
+    container: "bg-rose-50 text-rose-700 border border-rose-200/80 shadow-2xs",
+    dot: "bg-rose-500",
+    icon: "text-rose-600",
   },
   info: {
-    container: "bg-[#F0F9FF] text-[#0284C7] border border-[#BAE6FD]",
-    dot: "bg-[#0EA5E9]",
-    icon: "text-[#0284C7]",
+    container: "bg-sky-50 text-sky-700 border border-sky-200/80 shadow-2xs",
+    dot: "bg-sky-500",
+    icon: "text-sky-600",
   },
   neutral: {
-    container: "bg-[#F8F9FA] text-[#6B7280] border border-[#E5E7EB]",
-    dot: "bg-[#9CA3AF]",
-    icon: "text-[#6B7280]",
+    container: "bg-slate-100/80 text-slate-700 border border-slate-200/90 shadow-2xs",
+    dot: "bg-slate-400",
+    icon: "text-slate-600",
   },
   hero: {
-    container: "bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]",
-    dot: "bg-[#4F46E5]",
-    icon: "text-[#4F46E5]",
+    container: "bg-indigo-50/90 text-indigo-700 border border-indigo-200/90 shadow-[0_1px_3px_rgba(99,102,241,0.12)]",
+    dot: "bg-indigo-600",
+    icon: "text-indigo-600",
+  },
+  gradient: {
+    container: "bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 text-indigo-700 border border-indigo-200/60 shadow-2xs",
+    dot: "bg-indigo-600",
+    icon: "text-indigo-600",
   },
 };
 
@@ -58,31 +65,42 @@ export function StatusBadge({
   iconName,
   size = "md",
   dot = false,
+  pulse = false,
   className,
   ...props
 }: StatusBadgeProps) {
-  const styles = badgeVariants[variant];
+  const styles = badgeVariants[variant] || badgeVariants.neutral;
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full font-medium transition-colors select-none",
-        size === "sm" ? "px-2.5 py-0.5 text-xs" : "px-3 py-1 text-xs",
+        "inline-flex items-center gap-1.5 rounded-full font-semibold transition-all select-none backdrop-blur-xs tracking-tight",
+        size === "sm" ? "px-2.5 py-0.5 text-[11px]" : "px-3 py-1 text-xs",
         styles.container,
         className
       )}
       {...props}
     >
       {dot && (
-        <span
-          className={cn("w-1.5 h-1.5 rounded-full shrink-0", styles.dot)}
-          aria-hidden="true"
-        />
+        <span className="relative flex h-2 w-2 items-center justify-center">
+          {pulse && (
+            <span
+              className={cn(
+                "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                styles.dot
+              )}
+            />
+          )}
+          <span
+            className={cn("relative inline-flex rounded-full h-1.5 w-1.5", styles.dot)}
+            aria-hidden="true"
+          />
+        </span>
       )}
       {iconName && (
         <IonIcon
           name={iconName}
-          size={size === "sm" ? 13 : 14}
+          size={size === "sm" ? 12 : 14}
           className={cn("shrink-0", styles.icon)}
           aria-hidden="true"
         />

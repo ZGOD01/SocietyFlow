@@ -1,21 +1,30 @@
 :root {
-  /* Core Style Tokens */
+  /* Core Style Tokens - High-End Modern SaaS Palette */
   --background: #FFFFFF;
-  --surface: #F8F9FA;
+  --background-subtle: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-subtle: #F8FAFC;
   --surface-raised: #FFFFFF;
-  --primary-text: #1A1A1A;
-  --secondary-text: #6B7280;
-  --tertiary-text: #9CA3AF;
   
-  /* Brand / Hero Tokens */
+  --primary-text: #0F172A;
+  --secondary-text: #475569;
+  --tertiary-text: #94A3B8;
+  
+  /* Brand / Electric Indigo & Violet Accents */
   --hero: #4F46E5;
   --hero-hover: #4338CA;
+  --hero-light: #6366F1;
   --hero-soft: #EEF2FF;
   --hero-border: #C7D2FE;
+  --hero-glow: rgba(99, 102, 241, 0.25);
+  
+  --accent-violet: #8B5CF6;
+  --accent-cyan: #06B6D4;
 
-  /* Border */
-  --border-subtle: #E5E7EB;
-  --border-hover: #D1D5DB;
+  /* Modern Glass & Border Tokens */
+  --border-subtle: #E2E8F0;
+  --border-hover: #CBD5E1;
+  --border-active: #94A3B8;
 
   /* Semantic Feedback */
   --success: #10B981;
@@ -30,19 +39,23 @@
   --error-soft: #FFF1F2;
   --error-border: #FECDD3;
 
-  --info: #0EA5E9;
+  --info: #0284C7;
   --info-soft: #F0F9FF;
   --info-border: #BAE6FD;
 
-  /* Radii */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-card: 14px;
+  /* Radii - Precision Shadcn curvature */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-card: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
   --radius-pill: 9999px;
 
-  /* Subtle Neutral Shadows (No gradients, ultra-clean) */
-  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
-  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-modal: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  /* Dynamic Elevation & Ambient Glows */
+  --shadow-subtle: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  --shadow-hover: 0 16px 36px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  --shadow-glow: 0 0 40px -10px rgba(99, 102, 241, 0.3);
+  --shadow-modal: 0 24px 60px -12px rgba(15, 23, 42, 0.16), 0 12px 24px -8px rgba(15, 23, 42, 0.08);
 }

@@ -1,5 +1,7 @@
 import React from "react";
+import Link from "next/link";
 import { ModuleFoundationView } from "@/components/common/ModuleFoundationView";
+import { AppButton } from "@/components/ui";
 
 export default function AdminConsolePage() {
   return (
@@ -9,6 +11,20 @@ export default function AdminConsolePage() {
       iconName="shield-checkmark-outline"
       summary="Managing committee role assignments, wing governance rules, and audit log inspection"
       targetMilestone="Milestone 4: Committee Governance"
+      actions={
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard">
+            <AppButton variant="outline" size="sm" leftIcon="grid-outline">
+              Overview
+            </AppButton>
+          </Link>
+          <Link href="/admin/dashboard">
+            <AppButton variant="hero" size="sm" leftIcon="shield-checkmark-outline">
+              Super Admin Dashboard
+            </AppButton>
+          </Link>
+        </div>
+      }
       demoStats={[
         { label: "Active Roles", value: "4 Roles" },
         { label: "Audit Entries", value: "1,248 Logs" },

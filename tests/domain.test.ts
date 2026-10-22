@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { formatFileSize, formatDate, cn } from "@/lib/utils";
 import { APP_NAV_ITEMS } from "@/config/navigation";
-import { loginSchema, registerSchema } from "@/modules/auth/schema";
+import {
+  loginSchema,
+  registerSchema,
+  ownerRegistrationSchema,
+  tenantRegistrationSchema,
+  managementRegistrationSchema,
+} from "@/modules/auth/schema";
 import { uploadDocumentSchema } from "@/modules/documents/schema";
 import { societyConfigSchema } from "@/modules/domain-schemas";
 
@@ -37,6 +43,13 @@ describe("Role-Aware Navigation", () => {
     expect(dashboardItem?.allowedRoles).toContain("SOCIETY_ADMIN");
     expect(dashboardItem?.allowedRoles).toContain("AUDITOR_PARTNER");
   });
+
+  it("permits committee roles to view management dashboard", () => {
+    const mgmtItem = APP_NAV_ITEMS.find((item) => item.href === "/management/dashboard");
+    expect(mgmtItem).toBeDefined();
+    expect(mgmtItem?.allowedRoles).toContain("SOCIETY_ADMIN");
+    expect(mgmtItem?.allowedRoles).not.toContain("TENANT");
+  });
 });
 
 describe("Domain Validation Schemas", () => {
@@ -69,6 +82,97 @@ describe("Domain Validation Schemas", () => {
       termsAccepted: false,
     });
     expect(invalid.success).toBe(false);
+  });
+
+  it("validates property owner registration with flat details and password confirmation", () => {
+    const valid = ownerRegistrationSchema.safeParse({
+      accountType: "OWNER",
+      fullName: "Priya Mehta",
+      email: "priya.mehta@example.com",
+      password: "SecurePassword123!",
+      confirmPassword: "SecurePassword123!",
+      societyJoiningMethod: "CODE",
+      societyCode: "GREENWOOD-PUNE",
+      wing: "Wing C",
+      flatNumber: "402",
+      ownershipType: "SOLE_OWNER",
+      termsAccepted: true,
+    });
+    expect(valid.success).toBe(true);
+
+    const mismatch = ownerRegistrationSchema.safeParse({
+      accountType: "OWNER",
+      fullName: "Priya Mehta",
+      email: "priya.mehta@example.com",
+      password: "SecurePassword123!",
+      confirmPassword: "DifferentPassword123!",
+      societyCode: "GREENWOOD-PUNE",
+      wing: "Wing C",
+      flatNumber: "402",
+      termsAccepted: true,
+    });
+    expect(mismatch.success).toBe(false);
+  });
+
+  it("validates tenant registration with owner authorization requirement", () => {
+    const valid = tenantRegistrationSchema.safeParse({
+      accountType: "TENANT",
+      fullName: "Rahul Joshi",
+      email: "rahul.joshi@example.com",
+      password: "TenantPassword123!",
+      confirmPassword: "TenantPassword123!",
+      societyJoiningMethod: "CODE",
+      societyCode: "GREENWOOD-PUNE",
+      wing: "Wing B",
+      flatNumber: "201",
+      ownerName: "Rajesh S. Joshi",
+      ownerContact: "rajesh.joshi@example.com",
+      termsAccepted: true,
+    });
+    expect(valid.success).toBe(true);
+
+    const missingOwner = tenantRegistrationSchema.safeParse({
+      accountType: "TENANT",
+      fullName: "Rahul Joshi",
+      email: "rahul.joshi@example.com",
+      password: "TenantPassword123!",
+      confirmPassword: "TenantPassword123!",
+      societyCode: "GREENWOOD-PUNE",
+      wing: "Wing B",
+      flatNumber: "201",
+      ownerName: "",
+      ownerContact: "",
+      termsAccepted: true,
+    });
+    expect(missingOwner.success).toBe(false);
+  });
+
+  it("validates society management registration with intended position and resolution", () => {
+    const valid = managementRegistrationSchema.safeParse({
+      accountType: "MANAGEMENT",
+      fullName: "R. K. Sharma",
+      email: "rk.sharma@greenwood.com",
+      password: "CommitteePassword123!",
+      confirmPassword: "CommitteePassword123!",
+      position: "SECRETARY",
+      societyCode: "PNA/HSG/14902/2019",
+      resolutionNumber: "AGM-2024-RES-08",
+      termsAccepted: true,
+    });
+    expect(valid.success).toBe(true);
+
+    const invalidPosition = managementRegistrationSchema.safeParse({
+      accountType: "MANAGEMENT",
+      fullName: "R. K. Sharma",
+      email: "rk.sharma@greenwood.com",
+      password: "CommitteePassword123!",
+      confirmPassword: "CommitteePassword123!",
+      position: "INVALID_POSITION" as unknown as "SECRETARY",
+      societyCode: "PNA/HSG/14902/2019",
+      resolutionNumber: "AGM-2024-RES-08",
+      termsAccepted: true,
+    });
+    expect(invalidPosition.success).toBe(false);
   });
 
   it("validates document upload schemas", () => {

@@ -18,6 +18,7 @@ export interface ModuleFoundationViewProps {
   architecturalComponents: string[];
   plannedIntegrations: string[];
   demoStats?: { label: string; value: string }[];
+  actions?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -30,6 +31,7 @@ export function ModuleFoundationView({
   architecturalComponents,
   plannedIntegrations,
   demoStats,
+  actions,
   children,
 }: ModuleFoundationViewProps) {
   return (
@@ -47,13 +49,15 @@ export function ModuleFoundationView({
           </StatusBadge>
         }
         actions={
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard">
-              <AppButton variant="outline" size="sm" leftIcon="grid-outline">
-                Back to Overview
-              </AppButton>
-            </Link>
-          </div>
+          actions || (
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard">
+                <AppButton variant="outline" size="sm" leftIcon="grid-outline">
+                  Back to Overview
+                </AppButton>
+              </Link>
+            </div>
+          )
         }
       />
 
