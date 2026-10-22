@@ -1,0 +1,70 @@
+import { NavItem } from "@/types";
+
+export const APP_NAV_ITEMS: NavItem[] = [
+  {
+    title: "Overview",
+    href: "/dashboard",
+    iconName: "grid-outline",
+    allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN", "RESIDENT_OWNER", "TENANT", "AUDITOR_PARTNER"],
+    description: "Personal and society status overview",
+  },
+  {
+    title: "Personal Vault",
+    href: "/documents",
+    iconName: "folder-open-outline",
+    badge: "Vault",
+    allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN", "RESIDENT_OWNER", "TENANT"],
+    description: "Your verified unit agreements and certificates",
+  },
+  {
+    title: "Society Library",
+    href: "/society-documents",
+    iconName: "library-outline",
+    allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN", "RESIDENT_OWNER", "TENANT", "AUDITOR_PARTNER"],
+    description: "Bylaws, minutes, audit reports, and notices",
+  },
+  {
+    title: "My Requests",
+    href: "/requests",
+    iconName: "document-text-outline",
+    allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN", "RESIDENT_OWNER", "TENANT"],
+    description: "NOC, move-in, and service applications",
+  },
+  {
+    title: "Approvals",
+    href: "/approvals",
+    iconName: "checkmark-done-circle-outline",
+    badge: "Admin",
+    allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN"],
+    description: "Pending committee reviews and sign-offs",
+  },
+  {
+    title: "Flats & Properties",
+    href: "/properties",
+    iconName: "business-outline",
+    allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN", "RESIDENT_OWNER"],
+    description: "Wing rosters and ownership records",
+  },
+  {
+    title: "Admin Console",
+    href: "/admin",
+    iconName: "shield-checkmark-outline",
+    badge: "Sys",
+    allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN"],
+    description: "Society configuration and member roles",
+  },
+  {
+    title: "Partner / Auditor",
+    href: "/partner",
+    iconName: "briefcase-outline",
+    allowedRoles: ["SUPER_ADMIN", "AUDITOR_PARTNER"],
+    description: "Audit oversight and legal verification portal",
+  },
+  {
+    title: "Settings",
+    href: "/settings",
+    iconName: "settings-outline",
+    allowedRoles: ["SUPER_ADMIN", "SOCIETY_ADMIN", "RESIDENT_OWNER", "TENANT", "AUDITOR_PARTNER"],
+    description: "Profile, security, and notification settings",
+  },
+];
