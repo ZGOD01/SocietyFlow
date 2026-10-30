@@ -98,12 +98,23 @@ export async function POST(req: NextRequest) {
     // Check existing user
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
-      return NextResponse.json(
-        {
-          error: "An account with this email already exists. Please sign in instead.",
-        },
-        { status: 409 }
-      );
+      // Check if this existing user actually has completed or active records
+      const [userMemberships, userRequests] = await Promise.all([
+        SocietyMembership.countDocuments({ userId: existingUser._id }),
+        RegistrationRequest.countDocuments({ applicantEmail: normalizedEmail }),
+      ]);
+
+      // If user already has real memberships or requests, or is super admin, block duplicate registration
+      if (userMemberships > 0 || userRequests > 0 || existingUser.isSuperAdmin) {
+        return NextResponse.json(
+          {
+            error: "An account with this email already exists. Please sign in instead.",
+          },
+          { status: 409 }
+        );
+      }
+      // If user is orphaned (prior attempt failed midway with 0 memberships & 0 requests),
+      // we allow them to complete registration without throwing an email conflict.
     }
 
     // Check for duplicate unresolved registration request
@@ -126,22 +137,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Hash password securely (bcrypt, 12 rounds)
-    const hashedPassword = await hashPassword(validatedData.password as string);
-
-    // Create User record with initial PENDING_REGISTRATION_APPROVAL onboarding status
-    const user = await User.create({
-      name: (validatedData.fullName as string).trim(),
-      email: normalizedEmail,
-      password: hashedPassword,
-      phone: (validatedData.phone as string) || undefined,
-      status: "ACTIVE",
-      onboardingStatus: "PENDING_REGISTRATION_APPROVAL",
-      isSuperAdmin: false,
-      isPartner: false,
-    });
-
-    // Society Resolution by code, registration number, or name
+    // Society Resolution by code, registration number, resolution number, invite token, or name
     let rawCode = ((validatedData.societyCode as string) || "").trim();
     const inputName = (validatedData.societyName as string)?.trim() || (rawCode ? `${rawCode.replace(/-/g, " ")} CHS Ltd.` : "Housing Society CHS Ltd.");
     const inputCity = (validatedData.city as string)?.trim() || "Pune";
@@ -253,7 +249,9 @@ export async function POST(req: NextRequest) {
       const escapedCode = rawCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const codeRegex = new RegExp(`^${escapedCode}$`, "i");
 
+      // Match ANY of: code, registrationNumber, resolutionNumber, inviteToken, or name
       society = await Society.findOne({
+        status: "ACTIVE",
         $or: [
           { code: rawCode },
           { code: rawCode.toUpperCase() },
@@ -261,6 +259,12 @@ export async function POST(req: NextRequest) {
           { registrationNumber: rawCode },
           { registrationNumber: rawCode.toUpperCase() },
           { registrationNumber: codeRegex },
+          { resolutionNumber: rawCode },
+          { resolutionNumber: rawCode.toUpperCase() },
+          { resolutionNumber: codeRegex },
+          { inviteToken: rawCode },
+          { inviteToken: rawCode.toUpperCase() },
+          { inviteToken: codeRegex },
           { name: codeRegex },
           { name: rawCode },
         ],
@@ -277,11 +281,36 @@ export async function POST(req: NextRequest) {
       if (!society) {
         return NextResponse.json(
           {
-            error: `Society "${rawCode}" was not found. Please verify the Society Code or Registration ID (e.g. ABC/DEF/001) with your society management committee.`,
+            error: `Society "${rawCode}" was not found. Please verify the Society Code, Registration ID, or Resolution/Invite Token with your society committee.`,
           },
           { status: 404 }
         );
       }
+    }
+
+    // Hash password securely (bcrypt, 12 rounds)
+    const hashedPassword = await hashPassword(validatedData.password as string);
+
+    // Create or update User record ONLY AFTER society is guaranteed to be valid
+    let user;
+    if (existingUser) {
+      existingUser.name = (validatedData.fullName as string).trim();
+      existingUser.password = hashedPassword;
+      existingUser.phone = (validatedData.phone as string) || undefined;
+      existingUser.status = "ACTIVE";
+      existingUser.onboardingStatus = "PENDING_REGISTRATION_APPROVAL";
+      user = await existingUser.save();
+    } else {
+      user = await User.create({
+        name: (validatedData.fullName as string).trim(),
+        email: normalizedEmail,
+        password: hashedPassword,
+        phone: (validatedData.phone as string) || undefined,
+        status: "ACTIVE",
+        onboardingStatus: "PENDING_REGISTRATION_APPROVAL",
+        isSuperAdmin: false,
+        isPartner: false,
+      });
     }
 
     const memberships: SessionMembershipInfo[] = [];

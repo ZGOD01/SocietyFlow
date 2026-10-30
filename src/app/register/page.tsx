@@ -43,6 +43,8 @@ export default function RegisterPage() {
   // Role-Specific: Owner
   const [ownerSocietyMethod, setOwnerSocietyMethod] = useState<"CODE" | "SEARCH" | "INVITE">("CODE");
   const [societyCode, setSocietyCode] = useState("");
+  const [matchedSocietyName, setMatchedSocietyName] = useState<string | null>(null);
+  const [checkingSociety, setCheckingSociety] = useState(false);
   const [wing, setWing] = useState("Wing A");
   const [flatNumber, setFlatNumber] = useState("");
   const [ownershipType, setOwnershipType] = useState<"SOLE_OWNER" | "JOINT_OWNER">("SOLE_OWNER");
@@ -79,6 +81,32 @@ export default function RegisterPage() {
     society: string;
     unit: string;
   } | null>(null);
+
+  // Live lookup to verify Society Code, Registration Number, Resolution Token, or Name
+  React.useEffect(() => {
+    if (selectedType === "MANAGEMENT" || !societyCode.trim() || societyCode.trim().length < 2) {
+      setMatchedSocietyName(null);
+      setCheckingSociety(false);
+      return;
+    }
+    setCheckingSociety(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/society/lookup?code=${encodeURIComponent(societyCode.trim())}`);
+        const data = await res.json();
+        if (data.found && data.society) {
+          setMatchedSocietyName(`${data.society.name} (${data.society.city || "Verified"})`);
+        } else {
+          setMatchedSocietyName(null);
+        }
+      } catch {
+        setMatchedSocietyName(null);
+      } finally {
+        setCheckingSociety(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [societyCode, selectedType]);
 
   const accountTypes = [
     {
@@ -671,19 +699,33 @@ export default function RegisterPage() {
                             </select>
                           </div>
 
-                          <FormField
-                            label="Society Code or Registration ID"
-                            value={societyCode}
-                            onChange={(e) => {
-                              setSocietyCode(e.target.value);
-                              if (errors.societyCode) setErrors({ ...errors, societyCode: undefined });
-                            }}
-                            placeholder="e.g. GREENWOOD-PUNE"
-                            leftIcon="business-outline"
-                            required
-                            error={errors.societyCode}
-                            helperText="Assigned by the cooperative housing society"
-                          />
+                          <div>
+                            <FormField
+                              label="Society Code, Reg Number, or Token"
+                              value={societyCode}
+                              onChange={(e) => {
+                                setSocietyCode(e.target.value);
+                                if (errors.societyCode) setErrors({ ...errors, societyCode: undefined });
+                              }}
+                              placeholder="e.g. 123456789 or ABC-001 or Society Name"
+                              leftIcon="business-outline"
+                              required
+                              error={errors.societyCode}
+                              helperText="Enter either Society Code / Reg Number, Resolution Token, or Society Name"
+                            />
+                            {matchedSocietyName && (
+                              <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                                <IonIcon name="checkmark-circle" size={16} className="text-emerald-600 shrink-0" />
+                                <span>Matched Society: <strong>{matchedSocietyName}</strong></span>
+                              </div>
+                            )}
+                            {checkingSociety && (
+                              <div className="mt-1.5 text-[11px] text-slate-500 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                                Verifying society code / token...
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -759,18 +801,33 @@ export default function RegisterPage() {
                             </select>
                           </div>
 
-                          <FormField
-                            label="Society Code"
-                            value={societyCode}
-                            onChange={(e) => {
-                              setSocietyCode(e.target.value);
-                              if (errors.societyCode) setErrors({ ...errors, societyCode: undefined });
-                            }}
-                            placeholder="e.g. GREENWOOD-PUNE"
-                            leftIcon="business-outline"
-                            required
-                            error={errors.societyCode}
-                          />
+                          <div>
+                            <FormField
+                              label="Society Code, Reg Number, or Token"
+                              value={societyCode}
+                              onChange={(e) => {
+                                setSocietyCode(e.target.value);
+                                if (errors.societyCode) setErrors({ ...errors, societyCode: undefined });
+                              }}
+                              placeholder="e.g. 123456789 or ABC-001 or Society Name"
+                              leftIcon="business-outline"
+                              required
+                              error={errors.societyCode}
+                              helperText="Enter Society Code / Reg Number, Resolution Token, or Society Name"
+                            />
+                            {matchedSocietyName && (
+                              <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                                <IonIcon name="checkmark-circle" size={16} className="text-emerald-600 shrink-0" />
+                                <span>Matched Society: <strong>{matchedSocietyName}</strong></span>
+                              </div>
+                            )}
+                            {checkingSociety && (
+                              <div className="mt-1.5 text-[11px] text-slate-500 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                                Verifying society code / token...
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
