@@ -51,6 +51,12 @@ export interface IRegistrationRequest extends Document {
   ownerContact?: string;
   managementPosition?: string;
   resolutionNumber?: string;
+  isNewSociety?: boolean;
+  proposedSocietyName?: string;
+  proposedCity?: string;
+  proposedState?: string;
+  proposedWings?: string;
+  proposedFlatsCount?: number;
 
   status: OverallRegistrationStatus;
   ownerApproval: {
@@ -163,6 +169,12 @@ const RegistrationRequestSchema = new Schema<IRegistrationRequest>(
     ownerContact: { type: String, trim: true },
     managementPosition: { type: String, trim: true },
     resolutionNumber: { type: String, trim: true },
+    isNewSociety: { type: Boolean, default: false },
+    proposedSocietyName: { type: String, trim: true },
+    proposedCity: { type: String, trim: true },
+    proposedState: { type: String, trim: true },
+    proposedWings: { type: String, trim: true },
+    proposedFlatsCount: { type: Number },
 
     status: {
       type: String,

@@ -930,7 +930,12 @@ export async function getSuperAdminDashboardData(
   for (const r of regRequests as any[]) {
     const sId = r.societyId?.toString() || "";
     const isMgmt = r.role === "MANAGEMENT";
-    const roleTitle = isMgmt
+    const socName = r.proposedSocietyName || societyNameMap.get(sId) || "Housing Society";
+    const isNewSoc = Boolean(r.isNewSociety) || (isMgmt && (r.flatNumber === "Office" || Boolean(r.proposedSocietyName)));
+
+    const roleTitle = isNewSoc
+      ? `New Society Registration — ${socName}`
+      : isMgmt
       ? `Committee (${r.managementPosition || "Executive"}) Registration`
       : `${r.role === "TENANT" ? "Tenant" : "Owner"} Registration Approval`;
 
@@ -943,8 +948,10 @@ export async function getSuperAdminDashboardData(
       applicantEmail: r.applicantEmail || "",
       applicantPhone: r.applicantPhone || undefined,
       societyId: sId,
-      societyName: societyNameMap.get(sId) || "Society Registration",
-      unitInfo: isMgmt
+      societyName: socName,
+      unitInfo: isNewSoc
+        ? `New Society Onboarding (${r.managementPosition || "Society Manager"})`
+        : isMgmt
         ? `Management Desk (${r.managementPosition || "Office"})`
         : `${r.wingName || "Wing"} - Flat ${r.flatNumber || ""}`,
       resolutionNumber: r.resolutionNumber || undefined,
@@ -952,7 +959,9 @@ export async function getSuperAdminDashboardData(
       status: r.status || "PENDING_APPROVAL",
       approvalStage:
         r.societyApproval?.status === "APPROVED"
-          ? "Approved by Society"
+          ? "Approved by Super Admin"
+          : isNewSoc
+          ? "Awaiting Platform Super Admin Society Clearance"
           : isMgmt
           ? "Awaiting Platform Super Admin Clearance"
           : "Awaiting Society Management Review",

@@ -142,41 +142,8 @@ export async function POST(req: NextRequest) {
     });
 
     // Society Resolution by code, registration number, or name
-    const rawCode = ((validatedData.societyCode as string) || "GREENWOOD-PUNE").trim();
-    const escapedCode = rawCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const codeRegex = new RegExp(`^${escapedCode}$`, "i");
-
-    let society = await Society.findOne({
-      $or: [
-        { code: rawCode },
-        { code: rawCode.toUpperCase() },
-        { code: codeRegex },
-        { registrationNumber: rawCode },
-        { registrationNumber: rawCode.toUpperCase() },
-        { registrationNumber: codeRegex },
-        { name: codeRegex },
-        { name: rawCode },
-      ],
-    });
-
-    if (!society) {
-      // Also try partial name match for active societies
-      society = await Society.findOne({
-        name: { $regex: new RegExp(escapedCode, "i") },
-        status: "ACTIVE",
-      });
-    }
-
-    if (!society && (accountType === "OWNER" || accountType === "TENANT")) {
-      return NextResponse.json(
-        {
-          error: `Society "${rawCode}" was not found. Please verify the Society Code or Registration ID (e.g. ABC/DEF/001) with your society management committee.`,
-        },
-        { status: 404 }
-      );
-    }
-
-    const inputName = (validatedData.societyName as string)?.trim() || `${rawCode.replace(/-/g, " ")} CHS Ltd.`;
+    let rawCode = ((validatedData.societyCode as string) || "").trim();
+    const inputName = (validatedData.societyName as string)?.trim() || (rawCode ? `${rawCode.replace(/-/g, " ")} CHS Ltd.` : "Housing Society CHS Ltd.");
     const inputCity = (validatedData.city as string)?.trim() || "Pune";
     const inputState = (validatedData.state as string)?.trim() || "Maharashtra";
     const inputPin = (validatedData.pinCode as string)?.trim() || "411045";
@@ -193,108 +160,82 @@ export async function POST(req: NextRequest) {
     const flatsPerFloor = Math.max(1, Math.min(30, Number(validatedData.flatsPerFloor) || 4));
     const bhkType = (validatedData.bhkType as string) || "2 BHK";
 
-    if (!society) {
-      // Create initial society record with dynamic location and metadata (MANAGEMENT only)
-      society = await Society.create({
-        name: inputName,
-        code: rawCode.toUpperCase(),
-        registrationNumber: rawCode.toUpperCase(),
-        city: inputCity,
-        state: inputState,
-        pinCode: inputPin,
-        address: inputAddress,
-        resolutionNumber: resolution,
-        inviteToken: resolution,
-        totalWings: parsedWings.length > 0 ? parsedWings.length : 1,
-        totalFlats: parsedWings.length * floorsPerWing * flatsPerFloor,
-        contactEmail: normalizedEmail,
-        contactPhone: (validatedData.phone as string) || undefined,
-        status: "ACTIVE",
+    let society = null;
+    let isNewSocietyRegistration = false;
+
+    if (accountType === "MANAGEMENT") {
+      // If code was not provided, auto-generate a unique code from society name
+      if (!rawCode || rawCode.toUpperCase() === "GREENWOOD-PUNE") {
+        const cleanPfx = inputName.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6).toUpperCase() || "SOC";
+        rawCode = `${cleanPfx}-${Math.floor(100 + Math.random() * 900)}`;
+      }
+
+      const escapedCode = rawCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const codeRegex = new RegExp(`^${escapedCode}$`, "i");
+
+      // Check if a society with this exact code or registration number already exists
+      const existingSociety = await Society.findOne({
+        $or: [
+          { code: codeRegex },
+          { registrationNumber: codeRegex },
+        ],
       });
 
-      // Create Wing and Flat records dynamically in MongoDB
-      for (const wName of parsedWings) {
-        const wing = await Wing.create({
-          societyId: society._id,
-          name: wName,
-          totalFloors: floorsPerWing,
-          flatsPerFloor: flatsPerFloor,
-          totalFlats: floorsPerWing * flatsPerFloor,
+      if (existingSociety) {
+        // If an existing society has this code but has a DIFFERENT name, reject to prevent hijacking
+        const existingNameClean = existingSociety.name.trim().toLowerCase();
+        const inputNameClean = inputName.trim().toLowerCase();
+
+        if (existingNameClean !== inputNameClean) {
+          return NextResponse.json(
+            {
+              error: `The Society Code or Registration ID "${rawCode}" is already registered to "${existingSociety.name}". Please provide a unique Registration Code for "${inputName}".`,
+            },
+            { status: 409 }
+          );
+        }
+        // If exact same name and code, they are adding a committee member to that same society
+        society = existingSociety;
+      }
+
+      if (!society) {
+        // Create brand new isolated Housing Society
+        isNewSocietyRegistration = true;
+        society = await Society.create({
+          name: inputName,
+          code: rawCode.toUpperCase(),
+          registrationNumber: rawCode.toUpperCase(),
+          city: inputCity,
+          state: inputState,
+          pinCode: inputPin,
+          address: inputAddress,
+          resolutionNumber: resolution,
+          inviteToken: resolution,
+          totalWings: parsedWings.length > 0 ? parsedWings.length : 1,
+          totalFlats: parsedWings.length * floorsPerWing * flatsPerFloor,
+          contactEmail: normalizedEmail,
+          contactPhone: (validatedData.phone as string) || undefined,
+          status: "PENDING", // Zero-trust: pending Super Admin approval
         });
 
-        const wingPfx = wName.replace(/Wing\s*/i, "").trim() || "A";
-        for (let fl = 1; fl <= floorsPerWing; fl++) {
-          for (let u = 1; u <= flatsPerFloor; u++) {
-            const uStr = u < 10 ? `0${u}` : `${u}`;
-            const flatNum = `${wingPfx}-${fl}${uStr}`;
-            await Flat.create({
-              societyId: society._id,
-              wingId: wing._id,
-              flatNumber: flatNum,
-              floor: fl,
-              bhkType,
-              defaultOccupancyType: "VACANT",
-              isActive: true,
-              status: "ACTIVE",
-            });
-          }
-        }
-      }
-    } else {
-      let changed = false;
-      if (validatedData.societyName && (society.name.endsWith("CHS Ltd.") || !society.name)) {
-        society.name = inputName;
-        changed = true;
-      }
-      if (validatedData.city && (!society.city || society.city === "Pune")) {
-        society.city = inputCity;
-        changed = true;
-      }
-      if (validatedData.state) {
-        society.state = inputState;
-        changed = true;
-      }
-      if (validatedData.pinCode && (!society.pinCode || society.pinCode === "411045")) {
-        society.pinCode = inputPin;
-        changed = true;
-      }
-      if (inputAddress && !society.address) {
-        society.address = inputAddress;
-        changed = true;
-      }
-      if (resolution && !society.resolutionNumber) {
-        society.resolutionNumber = resolution;
-        society.inviteToken = resolution;
-        changed = true;
-      }
-
-      // Ensure wings and flats exist dynamically
-      for (const wName of parsedWings) {
-        let existingWing = await Wing.findOne({ societyId: society._id, name: wName });
-        if (!existingWing) {
-          existingWing = await Wing.create({
+        // Create Wing and Flat records dynamically in MongoDB
+        for (const wName of parsedWings) {
+          const wing = await Wing.create({
             societyId: society._id,
             name: wName,
             totalFloors: floorsPerWing,
             flatsPerFloor: flatsPerFloor,
             totalFlats: floorsPerWing * flatsPerFloor,
           });
-        }
 
-        const wingPfx = wName.replace(/Wing\s*/i, "").trim() || "A";
-        for (let fl = 1; fl <= floorsPerWing; fl++) {
-          for (let u = 1; u <= flatsPerFloor; u++) {
-            const uStr = u < 10 ? `0${u}` : `${u}`;
-            const flatNum = `${wingPfx}-${fl}${uStr}`;
-            const existingFlat = await Flat.findOne({
-              societyId: society._id,
-              wingId: existingWing._id,
-              flatNumber: flatNum,
-            });
-            if (!existingFlat) {
+          const wingPfx = wName.replace(/Wing\s*/i, "").trim() || "A";
+          for (let fl = 1; fl <= floorsPerWing; fl++) {
+            for (let u = 1; u <= flatsPerFloor; u++) {
+              const uStr = u < 10 ? `0${u}` : `${u}`;
+              const flatNum = `${wingPfx}-${fl}${uStr}`;
               await Flat.create({
                 societyId: society._id,
-                wingId: existingWing._id,
+                wingId: wing._id,
                 flatNumber: flatNum,
                 floor: fl,
                 bhkType,
@@ -306,15 +247,40 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+    } else {
+      // OWNER or TENANT: Must link to an existing registered active society
+      if (!rawCode) rawCode = "GREENWOOD-PUNE";
+      const escapedCode = rawCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const codeRegex = new RegExp(`^${escapedCode}$`, "i");
 
-      const totalFlatsCount = await Flat.countDocuments({ societyId: society._id });
-      if (society.totalFlats !== totalFlatsCount) {
-        society.totalFlats = totalFlatsCount;
-        changed = true;
+      society = await Society.findOne({
+        $or: [
+          { code: rawCode },
+          { code: rawCode.toUpperCase() },
+          { code: codeRegex },
+          { registrationNumber: rawCode },
+          { registrationNumber: rawCode.toUpperCase() },
+          { registrationNumber: codeRegex },
+          { name: codeRegex },
+          { name: rawCode },
+        ],
+      });
+
+      if (!society) {
+        // Also try partial name match for active societies
+        society = await Society.findOne({
+          name: { $regex: new RegExp(escapedCode, "i") },
+          status: "ACTIVE",
+        });
       }
 
-      if (changed) {
-        await society.save();
+      if (!society) {
+        return NextResponse.json(
+          {
+            error: `Society "${rawCode}" was not found. Please verify the Society Code or Registration ID (e.g. ABC/DEF/001) with your society management committee.`,
+          },
+          { status: 404 }
+        );
       }
     }
 
@@ -667,6 +633,12 @@ export async function POST(req: NextRequest) {
         flatNumber: "Office",
         managementPosition: position,
         resolutionNumber: resolution,
+        isNewSociety: isNewSocietyRegistration,
+        proposedSocietyName: inputName,
+        proposedCity: inputCity,
+        proposedState: inputState,
+        proposedWings: parsedWings.join(", "),
+        proposedFlatsCount: parsedWings.length * floorsPerWing * flatsPerFloor,
         status: "PENDING_APPROVAL",
         ownerApproval: {
           status: "NOT_REQUIRED",
@@ -683,7 +655,9 @@ export async function POST(req: NextRequest) {
             actorName: user.name,
             timestamp: new Date(),
             statusTransition: "PENDING_APPROVAL",
-            comment: `Committee role application for ${position} submitted. Awaiting Super Admin or committee clearance.`,
+            comment: isNewSocietyRegistration
+              ? `New society registration application for "${inputName}" submitted by ${user.name}. Awaiting Super Admin society clearance.`
+              : `Committee role application for ${position} submitted. Awaiting Super Admin or committee clearance.`,
           },
         ],
       });
