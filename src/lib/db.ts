@@ -43,6 +43,9 @@ export function formatDBError(err: unknown): string {
     return "MongoDB Atlas rejected the connection: Your current IP address is not whitelisted in MongoDB Atlas Network Access. Please whitelist your IP in Atlas or switch MONGODB_URI to local MongoDB in .env.local.";
   }
   if (msg.includes("ECONNREFUSED")) {
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      return "Cannot connect to MongoDB: In Vercel production, MONGODB_URI must be set to your cloud MongoDB Atlas connection string (mongodb+srv://...), not 127.0.0.1/localhost. Please update MONGODB_URI in Vercel Settings and Redeploy.";
+    }
     return "Local MongoDB is not running or unreachable on port 27017. Please ensure your MongoDB service is started.";
   }
   if (msg.includes("serverSelectionTimeoutMS") || msg.includes("ETIMEDOUT")) {
