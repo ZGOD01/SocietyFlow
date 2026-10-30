@@ -1,14 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
-  AppCard,
   FormField,
   AppButton,
-  StatusBadge,
-  IconContainer,
   IonIcon,
   Modal,
 } from "@/components/ui";
@@ -19,17 +17,120 @@ interface LoginErrors {
   password?: string;
 }
 
+type RoleTab = "OWNER" | "TENANT" | "COMMITTEE" | "AUDITOR" | "SUPER_ADMIN";
+
+const ROLE_INFO: Record<
+  RoleTab,
+  {
+    label: string;
+    icon: string;
+    badge: string;
+    placeholder: string;
+    helper: string;
+    dashboardRoute: string;
+  }
+> = {
+  OWNER: {
+    label: "Flat Owner",
+    icon: "home-outline",
+    badge: "Title Deed & Unit Vault",
+    placeholder: "e.g. resident@society.com",
+    helper: "Use your registered flat owner email to access your title vault and NOC requests",
+    dashboardRoute: "/dashboard",
+  },
+  TENANT: {
+    label: "Tenant",
+    icon: "key-outline",
+    badge: "Registered Tenant",
+    placeholder: "e.g. tenant@domain.com",
+    helper: "Use your lease-registered email to view rental records and pass requests",
+    dashboardRoute: "/dashboard?view=tenant",
+  },
+  COMMITTEE: {
+    label: "Committee",
+    icon: "shield-checkmark-outline",
+    badge: "Executive Desk",
+    placeholder: "e.g. secretary@society.com",
+    helper: "Secretary, Chairman, or Treasurer authorized society console email",
+    dashboardRoute: "/management/dashboard",
+  },
+  AUDITOR: {
+    label: "Auditor",
+    icon: "document-text-outline",
+    badge: "Statutory Desk",
+    placeholder: "e.g. auditor@firm.com",
+    helper: "Certified cooperative society auditor or empanelled legal partner email",
+    dashboardRoute: "/partner/dashboard",
+  },
+  SUPER_ADMIN: {
+    label: "Super Admin",
+    icon: "shield-outline",
+    badge: "Root Platform Authority",
+    placeholder: "e.g. admin@platform.com",
+    helper: "Root administrator credentials for global multi-tenant cluster management and oversight",
+    dashboardRoute: "/admin/dashboard",
+  },
+};
+
 export default function LoginPage() {
+  const router = useRouter();
+  const [selectedRole, setSelectedRole] = useState<RoleTab>("OWNER");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<LoginErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [sessionExpiredNotice, setSessionExpiredNotice] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [activeSession, setActiveSession] = useState<{
+    name: string;
+    email: string;
+    activeRole?: string;
+    isSuperAdmin?: boolean;
+    isPartner?: boolean;
+  } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const isSwitch = params?.get("switch") === "true" || params?.get("logout") === "true";
+    const isExpired = params?.get("reason") === "session_expired" || params?.get("reason") === "timeout";
+
+    if (isExpired) {
+      setSessionExpiredNotice(true);
+      fetch("/api/auth/logout", { method: "POST" })
+        .then(() => setActiveSession(null))
+        .catch(() => {});
+    } else if (isSwitch) {
+      // Clear server session when switching accounts
+      fetch("/api/auth/logout", { method: "POST" })
+        .then(() => setActiveSession(null))
+        .catch(() => {});
+    } else {
+      // Check if user is already authenticated
+      fetch("/api/auth/session")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.authenticated && data.user) {
+            setActiveSession(data.user);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const handleRoleSelect = (role: RoleTab) => {
+    setSelectedRole(role);
+    setServerError(null);
+    if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+    if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError(null);
+
     const result = loginSchema.safeParse({
       email,
       password,
@@ -49,279 +150,351 @@ export default function LoginPage() {
     setErrors({});
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, rememberMe }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setServerError(
+          data.error || "Authentication failed. Please verify your email and password."
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Hard navigation ensures fresh cookies and state across role dashboards
+      window.location.href = data.redirectUrl || "/dashboard";
+    } catch {
+      setServerError("Unable to reach authentication server. Please try again.");
       setIsSubmitting(false);
-      setShowSetupModal(true);
-    }, 350);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 flex flex-col justify-center items-center p-4 sm:p-6 text-slate-900 relative overflow-hidden">
-      {/* Ambient background glows */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[550px] h-[300px] bg-indigo-500/12 blur-[100px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-violet-500/10 blur-[80px] rounded-full pointer-events-none -z-10" />
+    <div className="relative min-h-screen bg-[#F8F9FA] text-[#1A1A1A] flex flex-col justify-between overflow-x-hidden">
+      {/* Top Floating Navigation Header */}
+      <header className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 flex items-center justify-between">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white text-[#1A1A1A] text-xs font-semibold border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:border-[#4F46E5] hover:text-[#4F46E5] transition-all"
+        >
+          <IonIcon name="arrow-back-outline" size={14} />
+          <span>Back to Overview</span>
+        </Link>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md relative z-10"
-      >
-        {/* Brand Header */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3 mb-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-extrabold text-xl font-heading shadow-md transition-transform group-hover:scale-105">
-              S
+        {/* Brand Lockup */}
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 rounded-xl bg-[#4F46E5] text-white flex items-center justify-center font-bold text-base font-heading shadow-xs group-hover:scale-105 transition-transform">
+            S
+          </div>
+          <span className="font-heading font-black text-lg tracking-[0.18em] text-[#1A1A1A] uppercase">
+            SOCIETY<span className="text-[#4F46E5]">FLOW</span>
+          </span>
+        </Link>
+
+        {/* Statutory Trust Chip */}
+        <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ECFDF5] text-[#10B981] text-[11px] font-bold border border-[#A7F3D0]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
+          <span>MCS Act 1960 Aligned</span>
+        </div>
+      </header>
+
+      {/* Main Content: Centered Auth Showcase */}
+      <main className="relative z-10 w-full max-w-xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col items-center justify-center my-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="w-full"
+        >
+          {/* Main Card */}
+          <div className="rounded-2xl bg-white border border-[#E5E7EB] shadow-[0_4px_24px_-2px_rgba(0,0,0,0.06)] overflow-hidden p-6 sm:p-9">
+            {/* Header Lockup */}
+            <div className="text-center space-y-2 mb-6">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EEF2FF] border border-[#C7D2FE] text-[#4F46E5] text-[11px] font-bold uppercase tracking-wider">
+                <IonIcon name="lock-closed-outline" size={13} />
+                <span>Secured Society Vault Access</span>
+              </div>
+
+              <h1 className="text-2xl sm:text-3xl font-black font-heading uppercase tracking-tight text-[#1A1A1A]">
+                Welcome Back
+              </h1>
+              <p className="text-xs sm:text-sm text-[#6B7280] max-w-md mx-auto leading-relaxed">
+                Enter your credentials to securely access your housing society records, unit deeds, and digital approvals.
+              </p>
             </div>
-            <span className="font-extrabold text-2xl tracking-tight font-heading text-slate-900">
-              Society<span className="text-gradient-brand">Flow</span>
-            </span>
-          </Link>
-          <h1 className="text-2xl font-bold tracking-tight font-heading text-slate-900">
-            Welcome Back
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Access your verified unit vault, requests, or committee console
-          </p>
-        </div>
 
-        {/* Milestone Integration Notice Banner */}
-        <div className="mb-4 p-4 rounded-2xl border border-indigo-200/90 bg-indigo-50/80 text-xs text-indigo-800 flex items-start gap-3 backdrop-blur-xs shadow-2xs">
-          <IconContainer
-            name="lock-closed-outline"
-            variant="hero-soft"
-            size="sm"
-            className="bg-white shrink-0 mt-0.5"
-          />
-          <div>
-            <span className="font-bold block text-xs">Auth Gateway (Prompt 1.1 Scaffold)</span>
-            <p className="text-[11px] text-indigo-700 leading-relaxed mt-0.5">
-              Client-side credential validation is active. NextAuth/Auth.js session verification with
-              MongoDB Atlas connects in Prompt 2. No fake session is created.
-            </p>
-          </div>
-        </div>
+            {/* Active Session Notification / Switcher Banner */}
+            {activeSession && (
+              <div className="mb-6 p-4 rounded-xl border border-[#C7D2FE] bg-[#EEF2FF] text-xs text-[#1A1A1A] space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <IonIcon name="shield-checkmark" size={18} className="text-[#4F46E5] shrink-0" />
+                    <div>
+                      <span className="font-bold text-[#1A1A1A]">Currently Logged In: </span>
+                      <span className="text-[#4F46E5] font-semibold">{activeSession.name}</span>
+                      <p className="text-[11px] text-[#6B7280]">
+                        {activeSession.email} • Role:{" "}
+                        <strong className="text-[#1A1A1A]">
+                          {activeSession.isSuperAdmin ? "Platform Super Admin" : activeSession.activeRole || "Member"}
+                        </strong>
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-        {/* Login Card */}
-        <AppCard className="p-6 sm:p-9 glass-card border-slate-200/90 shadow-lg">
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Account Authentication
-            </h2>
-            <StatusBadge variant="neutral" size="sm">
-              Secured Form
-            </StatusBadge>
-          </div>
+                <div className="flex items-center gap-2 pt-1 border-t border-[#C7D2FE]/60">
+                  <Link
+                    href={
+                      activeSession.isSuperAdmin
+                        ? "/admin/dashboard"
+                        : activeSession.isPartner
+                        ? "/partner/dashboard"
+                        : "/dashboard"
+                    }
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#4F46E5] text-white hover:bg-[#4338CA] transition-colors"
+                  >
+                    Go to {activeSession.isSuperAdmin ? "Super Admin" : "Dashboard"} →
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await fetch("/api/auth/logout", { method: "POST" });
+                      } finally {
+                        setActiveSession(null);
+                        setEmail("");
+                        setPassword("");
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-[#E5E7EB] text-[#F43F5E] hover:bg-[#FFF1F2] transition-colors cursor-pointer"
+                  >
+                    Sign Out to Login as Different User
+                  </button>
+                </div>
+              </div>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <FormField
-              label="Registered Email"
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (errors.email) setErrors({ ...errors, email: undefined });
-              }}
-              placeholder="name@example.com"
-              leftIcon="person-outline"
-              required
-              error={errors.email}
-              helperText="Owner, Tenant, Committee, or Auditor email"
-            />
-
-            <FormField
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (errors.password) setErrors({ ...errors, password: undefined });
-              }}
-              placeholder="••••••••••••"
-              leftIcon="lock-closed-outline"
-              rightIcon={showPassword ? "eye-outline" : "eye-outline"}
-              onRightIconClick={() => setShowPassword(!showPassword)}
-              required
-              error={errors.password}
-            />
-
-            <div className="flex items-center justify-between text-xs text-slate-600 pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="accent-indigo-600 rounded w-3.5 h-3.5 cursor-pointer"
-                />
-                <span>Remember on this device</span>
+            {/* Role Context Selector (Tabs) */}
+            <div className="mb-6">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#6B7280] mb-2 text-center">
+                Select Your Role Portal:
               </label>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1 rounded-xl bg-[#F8F9FA] border border-[#E5E7EB]">
+                {(Object.keys(ROLE_INFO) as RoleTab[]).map((role) => {
+                  const info = ROLE_INFO[role];
+                  const isSelected = selectedRole === role;
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => handleRoleSelect(role)}
+                      className={`relative py-2 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-white text-[#4F46E5] shadow-xs border border-[#E5E7EB] font-bold"
+                          : "text-[#6B7280] hover:text-[#1A1A1A] hover:bg-white/60"
+                      }`}
+                    >
+                      <IonIcon
+                        name={info.icon}
+                        size={14}
+                        className={isSelected ? "text-[#4F46E5]" : "text-[#9CA3AF]"}
+                      />
+                      <span className="truncate">{info.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  alert(
-                    "[Auth Notice] Password reset and magic link workflows will be wired with Auth.js email provider in Prompt 2."
-                  )
-                }
-                className="text-indigo-600 hover:text-indigo-700 hover:underline font-semibold cursor-pointer"
+              {/* Dynamic Role Helper Note */}
+              <div className="mt-2 text-center">
+                <span className="text-[11px] text-[#6B7280]">
+                  Portal Scope:{" "}
+                  <strong className="text-[#1A1A1A]">{ROLE_INFO[selectedRole].badge}</strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Session Expired Notice */}
+            {sessionExpiredNotice && (
+              <div className="mb-5 p-3.5 rounded-xl border border-[#FDE68A] bg-[#FEF3C7] text-xs text-[#92400E] flex items-start gap-2.5 shadow-sm animate-in fade-in duration-300">
+                <IonIcon name="time-outline" size={18} className="text-[#D97706] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold block text-[#78350F]">Session Timed Out</span>
+                  <p className="text-[11px] text-[#92400E] leading-relaxed">
+                    Your login session has expired due to time elapsed / inactivity. The account has been logged out for your security. Please log in again to continue.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Server Error Alert */}
+            {serverError && (
+              <div className="mb-5 p-3.5 rounded-xl border border-[#FECDD3] bg-[#FFF1F2] text-xs text-[#9F1239] flex items-start gap-2.5">
+                <IonIcon name="alert-circle" size={17} className="text-[#F43F5E] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold block text-[#9F1239]">Authentication Notice</span>
+                  <p className="text-[11px] text-[#BE123C] leading-relaxed">{serverError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Authentication Form */}
+            <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+              <div>
+                <FormField
+                  label="Registered Society Email"
+                  type="email"
+                  name="user_email"
+                  autoComplete="new-password"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                    if (serverError) setServerError(null);
+                  }}
+                  placeholder={ROLE_INFO[selectedRole].placeholder}
+                  leftIcon="mail-outline"
+                  required
+                  error={errors.email}
+                  helperText={ROLE_INFO[selectedRole].helper}
+                />
+              </div>
+
+              <div>
+                <FormField
+                  label="Password"
+                  type={showPassword ? "text" : "password"}
+                  name="user_password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                    if (serverError) setServerError(null);
+                  }}
+                  placeholder="Enter your password"
+                  leftIcon="lock-closed-outline"
+                  rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
+                  onRightIconClick={() => setShowPassword(!showPassword)}
+                  required
+                  error={errors.password}
+                  helperText="Minimum 8 characters"
+                />
+              </div>
+
+              {/* Remember Me & Forgot Password Row */}
+              <div className="flex items-center justify-between text-xs text-[#6B7280] pt-1">
+                <label className="flex items-center gap-2 cursor-pointer select-none group">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="accent-[#4F46E5] rounded w-4 h-4 cursor-pointer"
+                  />
+                  <span className="group-hover:text-[#1A1A1A] transition-colors">
+                    Remember on this device
+                  </span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPasswordModal(true)}
+                  className="text-[#4F46E5] hover:underline font-semibold cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              {/* Submit Button */}
+              <AppButton
+                type="submit"
+                variant="hero"
+                size="md"
+                className="w-full mt-2"
+                pill={false}
+                disabled={isSubmitting}
+                rightIcon={isSubmitting ? undefined : "arrow-forward-outline"}
+                leftIcon={isSubmitting ? "sync-outline" : undefined}
               >
-                Forgot password?
-              </button>
-            </div>
+                {isSubmitting ? "Signing In..." : "Sign In to Society Vault"}
+              </AppButton>
+            </form>
+            
 
-            <AppButton
-              type="submit"
-              variant="gradient"
-              pill
-              className="w-full mt-4 shadow-md"
-              rightIcon="arrow-forward-outline"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Validating Input..." : "Sign In to SocietyFlow"}
-            </AppButton>
-          </form>
-
-          {/* Quick Access to Prototype Roles */}
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <p className="text-xs font-semibold text-center text-slate-500 mb-3">
-              Explore Verified Role Dashboard Destinations:
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <Link href="/dashboard" className="w-full">
-                <AppButton variant="outline" size="sm" className="w-full justify-center">
-                  Owner Portal
-                </AppButton>
-              </Link>
-              <Link href="/dashboard?view=tenant" className="w-full">
-                <AppButton variant="outline" size="sm" className="w-full justify-center">
-                  Tenant Portal
-                </AppButton>
-              </Link>
-              <Link href="/management/dashboard" className="w-full">
-                <AppButton variant="outline" size="sm" className="w-full justify-center">
-                  Management
-                </AppButton>
-              </Link>
-              <Link href="/admin/dashboard" className="w-full">
-                <AppButton variant="outline" size="sm" className="w-full justify-center">
-                  Super Admin
-                </AppButton>
-              </Link>
-            </div>
-            <div className="mt-3 text-center">
-              <Link href="/partner/dashboard" className="text-xs text-indigo-600 hover:underline font-semibold">
-                Auditor &amp; Partner Desk →
+            {/* Switch to Registration */}
+            <div className="text-center pt-5 text-xs text-[#6B7280]">
+              New society, flat owner, or committee member?{" "}
+              <Link
+                href="/register"
+                className="text-[#4F46E5] font-bold hover:underline"
+              >
+                Register Your Society / Account →
               </Link>
             </div>
           </div>
-        </AppCard>
+        </motion.div>
+      </main>
 
-        {/* Footer Link */}
-        <div className="text-center mt-6 text-xs text-slate-500">
-          New Society, Resident, or Committee Member?{" "}
-          <Link
-            href="/register"
-            className="text-indigo-600 font-semibold hover:underline"
-          >
-            Get Started
+      {/* Footer Notice */}
+      <footer className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 text-center text-xs text-[#6B7280] flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-[#E5E7EB]">
+        <span>© 2026 SocietyFlow Statutory Governance Platform. All rights reserved.</span>
+        <div className="flex items-center gap-4 text-[#9CA3AF] text-[11px]">
+          <Link href="/" className="hover:text-[#1A1A1A]">
+            Landing Page
+          </Link>
+          <span>•</span>
+          <Link href="/register" className="hover:text-[#1A1A1A]">
+            Registration
+          </Link>
+          <span>•</span>
+          <Link href="/dashboard" className="hover:text-[#1A1A1A]">
+            Dashboards
           </Link>
         </div>
-      </motion.div>
+      </footer>
 
-      {/* Setup & Integration State Modal */}
+      {/* Forgot Password Modal */}
       <Modal
-        isOpen={showSetupModal}
-        onClose={() => setShowSetupModal(false)}
-        title="Auth.js Gateway Scaffold Ready"
-        description="Credentials validated. Authentication will be wired in Prompt 2."
+        isOpen={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+        title="Password Recovery"
+        description="Self-service recovery for registered society members"
         footer={
-          <div className="flex items-center justify-end gap-2 w-full">
+          <div className="flex items-center justify-end w-full">
             <AppButton
-              variant="outline"
+              variant="primary"
               size="sm"
-              onClick={() => setShowSetupModal(false)}
+              onClick={() => setShowForgotPasswordModal(false)}
             >
-              Stay on Login
+              Understood
             </AppButton>
-            <Link href="/dashboard">
-              <AppButton
-                variant="gradient"
-                size="sm"
-                pill
-                rightIcon="arrow-forward-outline"
-                onClick={() => setShowSetupModal(false)}
-              >
-                Enter Resident Console
-              </AppButton>
-            </Link>
           </div>
         }
       >
-        <div className="space-y-4 text-xs">
-          <div className="p-4 rounded-2xl border border-indigo-200/90 bg-indigo-50/80 text-indigo-900 space-y-1">
-            <div className="flex items-center gap-2 font-bold text-indigo-700">
-              <IonIcon name="information-circle-outline" size={16} />
-              <span>Prompt 1.1 Architecture Rule Enforced</span>
-            </div>
-            <p className="leading-relaxed text-indigo-700">
-              As specified in Prompt 1.1, we do not fabricate an authenticated user session or fake login tokens.
-              Real authentication session tokens with MongoDB Atlas connect in Prompt 2.
-            </p>
+        <div className="space-y-3 text-xs text-[#6B7280] leading-relaxed">
+          <p>
+            Housing society accounts are tied to verified flat ownership or tenancy records under MCS Act 1960.
+          </p>
+          <div className="p-3.5 rounded-xl border border-[#E5E7EB] bg-[#F8F9FA] space-y-1.5 text-[#1A1A1A]">
+            <div className="font-bold">Recovery Procedures:</div>
+            <ul className="list-disc pl-4 space-y-1 text-[11px] text-[#4B5563]">
+              <li>
+                <strong>Flat Owners &amp; Tenants:</strong> Request a reset link sent to your registered email address or contact your society honorary secretary.
+              </li>
+              <li>
+                <strong>Committee Members:</strong> Secondary verification via registered mobile number or society general body resolution.
+              </li>
+            </ul>
           </div>
-
-          <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
-            <span className="font-bold text-slate-900 block">Validated Payload:</span>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Target Email:</span>
-              <span className="font-mono text-slate-900 font-semibold">{email}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Password Complexity:</span>
-              <span className="text-emerald-600 font-bold">Valid (≥ 8 chars)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Remember Terminal:</span>
-              <span className="text-slate-900 font-medium">{rememberMe ? "Yes" : "No"}</span>
-            </div>
-          </div>
-
-          <div>
-            <span className="font-bold text-slate-900 block mb-2">Direct Prototype Dashboard Routes:</span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <Link
-                href="/dashboard"
-                onClick={() => setShowSetupModal(false)}
-                className="p-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50 hover:border-indigo-300 transition-colors flex items-center justify-between"
-              >
-                <span className="font-semibold text-slate-800">Resident Owner</span>
-                <span className="text-indigo-600 font-bold">/dashboard →</span>
-              </Link>
-              <Link
-                href="/dashboard?view=tenant"
-                onClick={() => setShowSetupModal(false)}
-                className="p-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50 hover:border-indigo-300 transition-colors flex items-center justify-between"
-              >
-                <span className="font-semibold text-slate-800">Tenant Portal</span>
-                <span className="text-indigo-600 font-bold">/dashboard?view=tenant →</span>
-              </Link>
-              <Link
-                href="/management/dashboard"
-                onClick={() => setShowSetupModal(false)}
-                className="p-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50 hover:border-indigo-300 transition-colors flex items-center justify-between"
-              >
-                <span className="font-semibold text-slate-800">Management Committee</span>
-                <span className="text-indigo-600 font-bold">/management/dashboard →</span>
-              </Link>
-              <Link
-                href="/admin/dashboard"
-                onClick={() => setShowSetupModal(false)}
-                className="p-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50 hover:border-indigo-300 transition-colors flex items-center justify-between"
-              >
-                <span className="font-semibold text-slate-800">Platform Super Admin</span>
-                <span className="text-indigo-600 font-bold">/admin/dashboard →</span>
-              </Link>
-            </div>
-          </div>
+          <p className="text-[11px] text-[#9CA3AF]">
+            Self-service password recovery is enabled for registered society emails.
+          </p>
         </div>
       </Modal>
     </div>

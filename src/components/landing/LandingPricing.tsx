@@ -63,7 +63,7 @@ const plans = [
 
 export function LandingPricing() {
   return (
-    <section id="pricing" className="py-20 md:py-32 bg-slate-50/50 border-t border-slate-200/80 relative overflow-hidden">
+    <section id="pricing" className="py-20 md:py-32 bg-slate-50/30 backdrop-blur-md border-t border-slate-200/60 relative overflow-hidden">
       {/* Ambient background glow */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none -z-10" />
 

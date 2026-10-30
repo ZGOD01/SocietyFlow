@@ -3,75 +3,69 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { AppButton, IonIcon } from "@/components/ui";
+import { IonIcon } from "@/components/ui";
 
 export function LandingCTA() {
   return (
-    <section className="py-20 md:py-28 bg-white border-t border-slate-200 relative overflow-hidden">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="relative rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 p-8 sm:p-14 lg:p-16 text-center text-white shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)] overflow-hidden border border-slate-800"
-        >
-          {/* Luminous Glow Orbs inside CTA */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/20 blur-[80px] rounded-full pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-violet-500/20 blur-[80px] rounded-full pointer-events-none" />
+    <section className="py-16 md:py-24 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.4 }}
+        className="relative rounded-2xl sm:rounded-3xl overflow-hidden p-8 sm:p-12 lg:p-16 text-center text-slate-950 bg-gradient-to-br from-indigo-50/90 via-white to-sky-50/80 border-2 border-indigo-200/80 shadow-[0_25px_60px_-15px_rgba(99,102,241,0.18)]"
+      >
+        {/* Subtle Ambient Radial Glow */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-sky-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
 
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-indigo-300 text-xs font-semibold mb-6 border border-white/10 backdrop-blur-md">
-              <IonIcon name="sparkles-outline" size={15} />
-              <span>Cooperative Society Digital Revolution</span>
-            </div>
-
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-heading tracking-tight mb-3 text-white">
-              Ready to Modernize Your Housing Society?
-            </h2>
-
-            <p className="text-sm sm:text-base lg:text-lg text-slate-300 max-w-2xl mx-auto mb-8 font-normal leading-relaxed">
-              Step directly into the interactive SocietyFlow platform. Explore verified document vaults,
-              automated NOC committee approvals, and transparent ownership ledgers.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/register" className="w-full sm:w-auto">
-                <AppButton
-                  variant="gradient"
-                  size="lg"
-                  pill
-                  rightIcon="arrow-forward-outline"
-                  className="w-full sm:w-auto shadow-[0_0_30px_rgba(99,102,241,0.4)]"
-                >
-                  Get Started with SocietyFlow
-                </AppButton>
-              </Link>
-              <Link href="/login" className="w-full sm:w-auto">
-                <AppButton
-                  variant="outline"
-                  size="lg"
-                  pill
-                  leftIcon="lock-closed-outline"
-                  className="w-full sm:w-auto bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white"
-                >
-                  Sign In to Your Account
-                </AppButton>
-              </Link>
-            </div>
-
-            <div className="mt-10 pt-8 border-t border-white/10 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400 font-medium">
-              <span>Next.js 16 App Router</span>
-              <span>•</span>
-              <span>Tailwind CSS</span>
-              <span>•</span>
-              <span>TypeScript Strict</span>
-              <span>•</span>
-              <span>Multi-Tenant Isolated</span>
-            </div>
+        <div className="relative z-10 max-w-3xl mx-auto space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-100/80 text-indigo-800 text-[10px] sm:text-xs font-bold tracking-widest uppercase border border-indigo-200 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+            <span>Digital Governance Evolution</span>
           </div>
-        </motion.div>
-      </div>
+
+          <h2 className="text-2xl sm:text-4xl md:text-5xl font-black font-heading uppercase tracking-tight text-slate-950 leading-[1.08]">
+            READY TO MODERNIZE YOUR HOUSING SOCIETY?
+          </h2>
+
+          <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto font-normal leading-relaxed">
+            Join cooperative housing societies, flat owners, and managing committee members
+            turning paper chaos into verifiable digital trust.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href="/register" className="w-full sm:w-auto">
+              <button
+                type="button"
+                className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm tracking-wider uppercase transition-all shadow-md shadow-indigo-500/25 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <span>REGISTER YOUR SOCIETY</span>
+                <IonIcon name="arrow-forward-outline" size={16} />
+              </button>
+            </Link>
+            <Link href="/login" className="w-full sm:w-auto">
+              <button
+                type="button"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-white hover:bg-slate-50 text-slate-900 font-bold text-xs sm:text-sm tracking-wider uppercase border border-slate-300 shadow-sm transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <IonIcon name="lock-closed-outline" size={16} />
+                <span>MEMBER LOGIN</span>
+              </button>
+            </Link>
+          </div>
+
+          <div className="pt-6 border-t border-indigo-100 flex flex-wrap items-center justify-center gap-4 text-[10px] sm:text-[11px] text-slate-500 font-semibold tracking-wider uppercase">
+            <span>MCS ACT 1960</span>
+            <span>•</span>
+            <span>AES-256 VAULTS</span>
+            <span>•</span>
+            <span>BANK-APPROVED NOCS</span>
+            <span>•</span>
+            <span>48-HOUR QUORUM</span>
+          </div>
+        </div>
+      </motion.div>
     </section>
   );
 }

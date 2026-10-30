@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
   AppCard,
@@ -10,6 +11,7 @@ import {
   StatusBadge,
   IconContainer,
   IonIcon,
+  Modal,
 } from "@/components/ui";
 import {
   ownerRegistrationSchema,
@@ -40,8 +42,8 @@ export default function RegisterPage() {
 
   // Role-Specific: Owner
   const [ownerSocietyMethod, setOwnerSocietyMethod] = useState<"CODE" | "SEARCH" | "INVITE">("CODE");
-  const [societyCode, setSocietyCode] = useState("GREENWOOD-PUNE");
-  const [wing, setWing] = useState("Wing C");
+  const [societyCode, setSocietyCode] = useState("");
+  const [wing, setWing] = useState("Wing A");
   const [flatNumber, setFlatNumber] = useState("");
   const [ownershipType, setOwnershipType] = useState<"SOLE_OWNER" | "JOINT_OWNER">("SOLE_OWNER");
 
@@ -54,10 +56,29 @@ export default function RegisterPage() {
   // Role-Specific: Society Management
   const [intendedPosition, setIntendedPosition] = useState<ManagementPosition>("SECRETARY");
   const [resolutionNumber, setResolutionNumber] = useState("");
+  const [mgmtSocietyName, setMgmtSocietyName] = useState("");
+  const [mgmtCity, setMgmtCity] = useState("Pune");
+  const [mgmtState, setMgmtState] = useState("Maharashtra");
+  const [mgmtPinCode, setMgmtPinCode] = useState("411045");
+  const [mgmtAddress, setMgmtAddress] = useState("");
+  const [mgmtWings, setMgmtWings] = useState("Wing A, Wing B");
+  const [mgmtFloors, setMgmtFloors] = useState<number>(4);
+  const [mgmtFlatsPerFloor, setMgmtFlatsPerFloor] = useState<number>(4);
+  const [mgmtBhk, setMgmtBhk] = useState<string>("2 BHK");
 
   // Validation & Loading
+  const router = useRouter();
   const [errors, setErrors] = useState<FormErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalData, setSuccessModalData] = useState<{
+    title: string;
+    message: string;
+    role: string;
+    society: string;
+    unit: string;
+  } | null>(null);
 
   const accountTypes = [
     {
@@ -67,7 +88,7 @@ export default function RegisterPage() {
         "Manage your property, personal documents, society documents and service requests.",
       icon: "home-outline",
       badge: "Title & Flat Owner",
-      previewRoute: "/dashboard",
+      previewRoute: "/pending-approval",
       accent: "from-indigo-500/20 to-purple-500/20",
       borderGlow: "group-hover:border-indigo-400",
     },
@@ -78,7 +99,7 @@ export default function RegisterPage() {
         "Access your rental documents, communicate with your owner and raise society requests.",
       icon: "key-outline",
       badge: "Lease Resident",
-      previewRoute: "/dashboard?view=tenant",
+      previewRoute: "/pending-approval",
       accent: "from-sky-500/20 to-blue-500/20",
       borderGlow: "group-hover:border-sky-400",
     },
@@ -89,7 +110,7 @@ export default function RegisterPage() {
         "Manage residents, review documents and approve society requests.",
       icon: "shield-checkmark-outline",
       badge: "Committee Review",
-      previewRoute: "/management/dashboard",
+      previewRoute: "/pending-approval",
       accent: "from-amber-500/20 to-orange-500/20",
       borderGlow: "group-hover:border-amber-400",
     },
@@ -108,7 +129,7 @@ export default function RegisterPage() {
         phone: phone || undefined,
         societyJoiningMethod: ownerSocietyMethod,
         societyCode,
-        wing,
+        wing: wing || "Wing A",
         flatNumber,
         ownershipType,
         termsAccepted,
@@ -130,7 +151,7 @@ export default function RegisterPage() {
         phone: phone || undefined,
         societyJoiningMethod: tenantSocietyMethod,
         societyCode,
-        wing,
+        wing: wing || "Wing A",
         flatNumber,
         ownerName,
         ownerContact,
@@ -153,8 +174,17 @@ export default function RegisterPage() {
         confirmPassword,
         phone: phone || undefined,
         position: intendedPosition,
+        societyName: mgmtSocietyName || undefined,
         societyCode,
-        resolutionNumber,
+        city: mgmtCity || undefined,
+        state: mgmtState || undefined,
+        pinCode: mgmtPinCode || undefined,
+        address: mgmtAddress || undefined,
+        wings: mgmtWings || undefined,
+        floorsPerWing: mgmtFloors,
+        flatsPerFloor: mgmtFlatsPerFloor,
+        bhkType: mgmtBhk,
+        resolutionNumber: resolutionNumber || undefined,
         termsAccepted,
       });
 
@@ -170,69 +200,159 @@ export default function RegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      setIsSubmitting(true);
-      setTimeout(() => {
+    setServerError(null);
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    let payload: Record<string, unknown> = {};
+
+    if (selectedType === "OWNER") {
+      payload = {
+        accountType: "OWNER",
+        fullName,
+        email,
+        password,
+        confirmPassword,
+        phone: phone || undefined,
+        societyJoiningMethod: ownerSocietyMethod,
+        societyCode,
+        wing: wing || "Wing A",
+        flatNumber,
+        ownershipType,
+        termsAccepted,
+      };
+    } else if (selectedType === "TENANT") {
+      payload = {
+        accountType: "TENANT",
+        fullName,
+        email,
+        password,
+        confirmPassword,
+        phone: phone || undefined,
+        societyJoiningMethod: tenantSocietyMethod,
+        societyCode,
+        wing: wing || "Wing A",
+        flatNumber,
+        ownerName,
+        ownerContact,
+        leaseCommencement: leaseCommencement || undefined,
+        termsAccepted,
+      };
+    } else if (selectedType === "MANAGEMENT") {
+      payload = {
+        accountType: "MANAGEMENT",
+        fullName,
+        email,
+        password,
+        confirmPassword,
+        phone: phone || undefined,
+        position: intendedPosition,
+        societyName: mgmtSocietyName || undefined,
+        societyCode,
+        city: mgmtCity || undefined,
+        state: mgmtState || undefined,
+        pinCode: mgmtPinCode || undefined,
+        address: mgmtAddress || undefined,
+        wings: mgmtWings || undefined,
+        floorsPerWing: mgmtFloors,
+        flatsPerFloor: mgmtFlatsPerFloor,
+        bhkType: mgmtBhk,
+        resolutionNumber: resolutionNumber || undefined,
+        termsAccepted,
+      };
+    }
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setServerError(
+          data.error || "Registration could not be completed. Please review your inputs."
+        );
         setIsSubmitting(false);
-        setStep(3);
-      }, 350);
+        return;
+      }
+
+      setIsSubmitting(false);
+      setSuccessModalData({
+        title: "Registration Successful!",
+        message:
+          selectedType === "OWNER"
+            ? "Your registration has been submitted successfully and is awaiting approval from Society Management. You will receive a notification when your account is approved."
+            : selectedType === "TENANT"
+            ? "Your registration has been submitted successfully and is awaiting approval from the Property Owner and Society Management."
+            : "Your registration has been submitted successfully and is awaiting approval from Society Management.",
+        role: selectedType,
+        society: societyCode,
+        unit: selectedType === "MANAGEMENT" ? intendedPosition : `${wing} - Flat ${flatNumber}`,
+      });
+      setShowSuccessModal(true);
+      setStep(3);
+    } catch (err: unknown) {
+      setIsSubmitting(false);
+      setServerError(
+        "Network connection error: Unable to reach the server. Please check your internet connection or server status and try again."
+      );
     }
   };
 
   const activeTypeMeta = accountTypes.find((t) => t.id === selectedType)!;
 
   return (
-    <div className="min-h-screen bg-slate-50/60 py-10 sm:py-16 px-4 sm:px-6 lg:px-8 text-slate-900 relative overflow-hidden">
-      {/* Ambient background glows */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-indigo-500/10 blur-[110px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute bottom-0 right-10 w-80 h-80 bg-violet-500/10 blur-[100px] rounded-full pointer-events-none -z-10" />
-
+    <div className="min-h-screen bg-[#F4F5F7] py-10 sm:py-16 px-4 sm:px-6 lg:px-8 text-slate-900 relative overflow-hidden">
       <div className="max-w-3xl mx-auto">
         {/* Brand Header & Return Link */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3 mb-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-extrabold text-xl font-heading shadow-md transition-transform group-hover:scale-105">
-              S
-            </div>
-            <span className="font-extrabold text-2xl tracking-tight font-heading text-slate-900">
-              Society<span className="text-gradient-brand">Flow</span>
+          <Link href="/" className="inline-flex items-center gap-2 mb-3 group">
+            <span className="font-heading font-black text-2xl tracking-[0.2em] text-slate-950 uppercase group-hover:text-indigo-600 transition-colors">
+              SOCIETYFLOW
             </span>
           </Link>
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight font-heading text-slate-900">
-            Create Your Account
+          <h1 className="text-2xl sm:text-4xl font-black font-heading uppercase tracking-tight text-slate-950">
+            Create Your Society Account
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-md mx-auto">
-            Choose your account role to configure verified permissions and document vaults.
+          <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-md mx-auto">
+            Choose your stakeholder role to configure verified permissions and isolated document vaults.
           </p>
         </div>
 
         {/* Step Indicator */}
         <div className="mb-8 flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
           <div
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
               step >= 1
-                ? "bg-indigo-50 text-indigo-700 border border-indigo-200/90 shadow-2xs"
+                ? "bg-slate-950 text-white shadow-xs"
                 : "bg-white text-slate-400 border border-slate-200"
             }`}
           >
-            <span className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px]">
+            <span className="w-4 h-4 rounded-full bg-white/20 text-white flex items-center justify-center text-[10px]">
               1
             </span>
             <span>Account Role</span>
           </div>
           <span className="text-slate-300">―</span>
           <div
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
               step >= 2
-                ? "bg-indigo-50 text-indigo-700 border border-indigo-200/90 shadow-2xs"
+                ? "bg-slate-950 text-white shadow-xs"
                 : "bg-white text-slate-400 border border-slate-200"
             }`}
           >
             <span
               className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                step >= 2 ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600"
+                step >= 2 ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
               }`}
             >
               2
@@ -241,15 +361,15 @@ export default function RegisterPage() {
           </div>
           <span className="text-slate-300">―</span>
           <div
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
               step === 3
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/90 shadow-2xs"
+                ? "bg-emerald-600 text-white shadow-xs"
                 : "bg-white text-slate-400 border border-slate-200"
             }`}
           >
             <span
               className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-                step === 3 ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600"
+                step === 3 ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
               }`}
             >
               3
@@ -339,12 +459,12 @@ export default function RegisterPage() {
 
               <div className="flex justify-end pt-2">
                 <AppButton
-                  variant="gradient"
+                  variant="hero"
                   size="md"
                   pill
                   rightIcon="arrow-forward-outline"
                   onClick={() => setStep(2)}
-                  className="w-full sm:w-auto shadow-sm"
+                  className="w-full sm:w-auto shadow-xs"
                 >
                   Continue as {activeTypeMeta.title}
                 </AppButton>
@@ -421,6 +541,23 @@ export default function RegisterPage() {
                       <strong>Owner Authorization Required:</strong> Tenants are provisioned in pending status
                       until verified by the registered flat owner and confirmed with society management records.
                     </p>
+                  </div>
+                )}
+
+                {serverError && (
+                  <div className="mb-6 p-4 rounded-2xl border border-rose-200 bg-rose-50/90 text-xs text-rose-900 flex items-start gap-3 backdrop-blur-xs">
+                    <div className="w-8 h-8 rounded-full bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0 text-rose-600 mt-0.5">
+                      <IonIcon name="alert-circle" size={18} />
+                    </div>
+                    <div className="flex-1">
+                      <strong className="block text-rose-950 font-bold text-sm mb-1">
+                        Unable to Complete Registration
+                      </strong>
+                      <p className="leading-relaxed text-rose-800 mb-2">{serverError}</p>
+                      <div className="text-[11px] text-rose-700 bg-rose-100/60 rounded-lg p-2.5 border border-rose-200/50">
+                        <span className="font-semibold">Troubleshooting tip:</span> If this is a connection issue, verify your internet connection or check your database settings in <code className="bg-rose-200/60 px-1 py-0.5 rounded font-mono">.env.local</code>.
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -565,6 +702,9 @@ export default function RegisterPage() {
                               <option value="Wing D">Wing D</option>
                               <option value="Wing E">Wing E</option>
                             </select>
+                            {errors.wing && (
+                              <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.wing}</p>
+                            )}
                           </div>
 
                           <FormField
@@ -649,6 +789,9 @@ export default function RegisterPage() {
                               <option value="Wing D">Wing D</option>
                               <option value="Wing E">Wing E</option>
                             </select>
+                            {errors.wing && (
+                              <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.wing}</p>
+                            )}
                           </div>
 
                           <FormField
@@ -747,35 +890,147 @@ export default function RegisterPage() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-4">
                           <FormField
-                            label="Society Registration Number / Code"
-                            value={societyCode}
-                            onChange={(e) => {
-                              setSocietyCode(e.target.value);
-                              if (errors.societyCode) setErrors({ ...errors, societyCode: undefined });
-                            }}
-                            placeholder="e.g. PNA/HSG/14902/2019"
+                            label="Society Legal Registered Name"
+                            value={mgmtSocietyName}
+                            onChange={(e) => setMgmtSocietyName(e.target.value)}
+                            placeholder="e.g. Skyline Residency CHS Ltd."
                             leftIcon="business-outline"
-                            required
-                            error={errors.societyCode}
-                            helperText="Official registrar certificate registration number"
+                            helperText="Full cooperative housing society registered title"
                           />
 
-                          <FormField
-                            label="Committee Resolution Number or Invite Token"
-                            value={resolutionNumber}
-                            onChange={(e) => {
-                              setResolutionNumber(e.target.value);
-                              if (errors.resolutionNumber)
-                                setErrors({ ...errors, resolutionNumber: undefined });
-                            }}
-                            placeholder="e.g. AGM-2024-RES-08"
-                            leftIcon="document-attach-outline"
-                            required
-                            error={errors.resolutionNumber}
-                            helperText="Minutes resolution recording election or appointment"
-                          />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <FormField
+                              label="Society Registration Number / Code"
+                              value={societyCode}
+                              onChange={(e) => {
+                                setSocietyCode(e.target.value);
+                                if (errors.societyCode) setErrors({ ...errors, societyCode: undefined });
+                              }}
+                              placeholder="e.g. PNA/HSG/14902/2019"
+                              leftIcon="document-text-outline"
+                              required
+                              error={errors.societyCode}
+                              helperText="Official registrar certificate registration number"
+                            />
+
+                            <FormField
+                              label="Committee Resolution Number or Invite Token"
+                              value={resolutionNumber}
+                              onChange={(e) => {
+                                setResolutionNumber(e.target.value);
+                                if (errors.resolutionNumber)
+                                  setErrors({ ...errors, resolutionNumber: undefined });
+                              }}
+                              placeholder="e.g. AGM-2024-RES-08"
+                              leftIcon="document-attach-outline"
+                              required
+                              error={errors.resolutionNumber}
+                              helperText="Minutes resolution recording election or appointment"
+                            />
+                          </div>
+
+                          {/* Dynamic Society Location Details */}
+                          <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-3">
+                            <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                              <IonIcon name="location-outline" size={15} className="text-indigo-600" />
+                              Society Location & Wings Structure
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <FormField
+                                label="City"
+                                value={mgmtCity}
+                                onChange={(e) => setMgmtCity(e.target.value)}
+                                placeholder="e.g. Pune"
+                              />
+                              <FormField
+                                label="State"
+                                value={mgmtState}
+                                onChange={(e) => setMgmtState(e.target.value)}
+                                placeholder="e.g. Maharashtra"
+                              />
+                              <FormField
+                                label="PIN Code"
+                                value={mgmtPinCode}
+                                onChange={(e) => setMgmtPinCode(e.target.value)}
+                                placeholder="e.g. 411045"
+                              />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <FormField
+                                label="Street / Landmark Address"
+                                value={mgmtAddress}
+                                onChange={(e) => setMgmtAddress(e.target.value)}
+                                placeholder="e.g. Plot 42, Senapati Bapat Road"
+                              />
+                              <FormField
+                                label="Society Wings (comma-separated)"
+                                value={mgmtWings}
+                                onChange={(e) => setMgmtWings(e.target.value)}
+                                placeholder="e.g. Wing A, Wing B, Wing C"
+                                helperText="List all wings to populate the roster"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                              <FormField
+                                label="Floors per Wing"
+                                helperText="Vertical levels per tower"
+                              >
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="100"
+                                  value={mgmtFloors}
+                                  onChange={(e) => setMgmtFloors(Math.max(1, Number(e.target.value)))}
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                                />
+                              </FormField>
+
+                              <FormField
+                                label="Flats per Floor"
+                                helperText="Residential units per floor"
+                              >
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="30"
+                                  value={mgmtFlatsPerFloor}
+                                  onChange={(e) => setMgmtFlatsPerFloor(Math.max(1, Number(e.target.value)))}
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                                />
+                              </FormField>
+
+                              <FormField
+                                label="Default Flat Config"
+                                helperText="Initial unit layout style"
+                              >
+                                <select
+                                  value={mgmtBhk}
+                                  onChange={(e) => setMgmtBhk(e.target.value)}
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                                >
+                                  <option value="1 BHK">1 BHK</option>
+                                  <option value="2 BHK">2 BHK</option>
+                                  <option value="3 BHK">3 BHK</option>
+                                  <option value="4 BHK">4 BHK</option>
+                                </select>
+                              </FormField>
+                            </div>
+
+                            {/* Live Generation Summary */}
+                            <div className="p-2.5 bg-indigo-50/80 border border-indigo-100 rounded-xl flex items-center justify-between text-xs text-indigo-900">
+                              <span className="font-semibold flex items-center gap-1.5">
+                                <IonIcon name="business-outline" size={15} className="text-indigo-600" />
+                                Dynamic Units Estimate:
+                              </span>
+                              <span className="font-mono font-bold text-indigo-700">
+                                {mgmtWings.split(",").filter((w) => w.trim()).length * mgmtFloors * mgmtFlatsPerFloor} Flats
+                                ({mgmtFloors * mgmtFlatsPerFloor} per wing across {mgmtWings.split(",").filter((w) => w.trim()).length} wings)
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -821,12 +1076,12 @@ export default function RegisterPage() {
 
                     <AppButton
                       type="submit"
-                      variant="gradient"
+                      variant="hero"
                       size="md"
                       pill
                       rightIcon="arrow-forward-outline"
                       disabled={isSubmitting}
-                      className="w-full sm:w-auto shadow-md"
+                      className="w-full sm:w-auto shadow-xs"
                     >
                       {isSubmitting ? "Validating..." : "Submit Registration"}
                     </AppButton>
@@ -911,8 +1166,8 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {/* Architecture Notice */}
-                <div className="mt-6 p-4 rounded-2xl border border-indigo-200/90 bg-indigo-50/80 text-xs text-indigo-800 text-left max-w-md mx-auto flex items-start gap-3 backdrop-blur-xs">
+                {/* Architecture Staging Notice */}
+                <div className="mt-6 p-4 rounded-xl border border-[#C7D2FE] bg-[#EEF2FF] text-xs text-[#1A1A1A] text-left max-w-md mx-auto flex items-start gap-3">
                   <IconContainer
                     name="shield-checkmark-outline"
                     variant="hero-soft"
@@ -920,25 +1175,25 @@ export default function RegisterPage() {
                     className="bg-white shrink-0 mt-0.5"
                   />
                   <div>
-                    <span className="font-bold block text-sm mb-0.5">Architecture Milestone Hand-off</span>
-                    <p className="leading-relaxed text-indigo-700">
-                      In accordance with Prompt 1.1 criteria, real authentication session cookies and MongoDB Atlas
-                      persistence connect in Prompt 2. No fake session has been created.
+                    <span className="font-bold block text-sm mb-0.5 text-[#1A1A1A]">Zero-Trust Association Staged</span>
+                    <p className="leading-relaxed text-[#4B5563]">
+                      Your credentials and association request have been validated against MCS Act 1960 domain schemas.
+                      As mandated by Maharashtra Model Bylaws, flat access and committee permissions remain pending verification.
                     </p>
                   </div>
                 </div>
 
-                {/* Destination preview actions */}
+                {/* Destination actions */}
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <Link href={activeTypeMeta.previewRoute} className="w-full sm:w-auto">
+                  <Link href="/pending-approval" className="w-full sm:w-auto">
                     <AppButton
-                      variant="gradient"
+                      variant="hero"
                       size="md"
                       pill
                       rightIcon="arrow-forward-outline"
-                      className="w-full sm:w-auto shadow-md"
+                      className="w-full sm:w-auto shadow-xs"
                     >
-                      Preview {activeTypeMeta.title} Console
+                      View Approval Status Desk
                     </AppButton>
                   </Link>
 
@@ -967,6 +1222,69 @@ export default function RegisterPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Modal: Registration Successful! */}
+        <Modal
+          isOpen={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          title={successModalData?.title || "Registration Successful!"}
+          description="Statutory Governance & Approval Clearance"
+          maxWidth="md"
+          footer={
+            <div className="flex items-center justify-between w-full">
+              <AppButton
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/login")}
+              >
+                Go to Sign In
+              </AppButton>
+              <AppButton
+                variant="hero"
+                size="sm"
+                rightIcon="arrow-forward-outline"
+                onClick={() => router.push("/pending-approval")}
+              >
+                Approval Status Desk
+              </AppButton>
+            </div>
+          }
+        >
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46]">
+              <div className="w-10 h-10 rounded-full bg-[#10B981] text-white flex items-center justify-center shrink-0">
+                <IonIcon name="checkmark-done" size={22} />
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold uppercase tracking-wider block">
+                  Status: PENDING_APPROVAL
+                </span>
+                <p className="text-xs text-[#047857]">
+                  Account credentials initialized. Multi-tenant flat association staged.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-[#1A1A1A] font-medium leading-relaxed bg-[#F8F9FA] p-4 rounded-xl border border-[#E5E7EB]">
+              &ldquo;{successModalData?.message}&rdquo;
+            </p>
+
+            <div className="text-xs space-y-1.5 p-3 rounded-xl bg-white border border-[#E5E7EB]">
+              <div className="flex justify-between text-[#6B7280]">
+                <span>Society Code:</span>
+                <span className="font-bold text-[#1A1A1A]">{successModalData?.society}</span>
+              </div>
+              <div className="flex justify-between text-[#6B7280]">
+                <span>Associated Unit / Role:</span>
+                <span className="font-bold text-[#4F46E5]">{successModalData?.unit}</span>
+              </div>
+              <div className="flex justify-between text-[#6B7280]">
+                <span>Governance Protocol:</span>
+                <span className="font-medium text-[#1A1A1A]">MCS Act 1960 Model Bylaws</span>
+              </div>
+            </div>
+          </div>
+        </Modal>
       </div>
     </div>
   );

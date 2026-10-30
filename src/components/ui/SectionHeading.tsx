@@ -29,17 +29,18 @@ export function SectionHeading({
       )}
       {...props}
     >
-      <div className={cn("flex flex-col gap-1.5", isCentered && "items-center")}>
+      <div className={cn("flex flex-col gap-2.5", isCentered && "items-center")}>
         {eyebrow && (
-          <span className="text-xs font-semibold tracking-wider uppercase text-[#4F46E5] bg-[#EEF2FF] px-2.5 py-0.5 rounded-full w-fit">
-            {eyebrow}
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[10px] sm:text-xs font-bold tracking-wider uppercase bg-slate-950 text-white border border-slate-800 shadow-2xs w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>{eyebrow}</span>
           </span>
         )}
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1A1A1A]">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tight text-slate-950 font-heading leading-tight">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-sm sm:text-base text-[#6B7280] max-w-2xl">
+          <p className="text-xs sm:text-sm md:text-base text-slate-600 max-w-2xl font-normal leading-relaxed">
             {subtitle}
           </p>
         )}

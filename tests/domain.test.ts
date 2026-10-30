@@ -31,7 +31,7 @@ describe("Utility Functions", () => {
 
 describe("Role-Aware Navigation", () => {
   it("restricts admin console to authorized roles", () => {
-    const adminItem = APP_NAV_ITEMS.find((item) => item.href === "/admin");
+    const adminItem = APP_NAV_ITEMS.find((item) => item.href === "/admin" || item.href === "/admin/dashboard");
     expect(adminItem).toBeDefined();
     expect(adminItem?.allowedRoles).toContain("SUPER_ADMIN");
     expect(adminItem?.allowedRoles).not.toContain("TENANT");

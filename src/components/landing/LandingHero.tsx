@@ -1,130 +1,296 @@
 "use client";
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "motion/react";
-import { AppButton, IonIcon } from "@/components/ui";
-import { InteractiveHeroSimulator } from "./InteractiveHeroSimulator";
+import { IonIcon } from "@/components/ui";
 
 export function LandingHero() {
+  const [selectedSociety, setSelectedSociety] = useState("Royal Palms CHS");
+  const [selectedUnit, setSelectedUnit] = useState("Wing B • Flat 402");
+  const [selectedDocument, setSelectedDocument] = useState("Bank Resale NOC");
+  const [selectedStatus, setSelectedStatus] = useState("Verified & Active");
+
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [session, setSession] = useState<{
+    name: string;
+    email: string;
+    activeRole?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          setSession(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggleDropdown = (name: string) => {
+    setActiveDropdown(activeDropdown === name ? null : name);
+  };
+
+  const handleLaunchSimulator = () => {
+    const el = document.getElementById("simulator");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
-    <section className="relative pt-8 pb-16 md:pt-16 md:pb-24 overflow-hidden bg-gradient-to-b from-white via-indigo-50/20 to-white">
-      {/* Ambient Gradient Background Glows */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-gradient-to-tr from-indigo-500/12 via-purple-500/8 to-cyan-400/8 blur-[90px] rounded-full pointer-events-none -z-10 animate-pulse-glow" />
-      <div className="absolute top-10 left-10 w-64 h-64 bg-indigo-400/8 blur-[80px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute bottom-10 right-10 w-80 h-80 bg-violet-400/8 blur-[100px] rounded-full pointer-events-none -z-10" />
+    <section className="p-3 sm:p-4 lg:p-6 max-w-6xl mx-auto w-full">
+      {/* Medium-Sized Luxury Hero Card Container */}
+      <div className="relative isolate rounded-2xl sm:rounded-3xl overflow-hidden min-h-[500px] sm:min-h-[540px] md:min-h-[580px] flex flex-col justify-between p-5 sm:p-7 lg:p-8 bg-slate-900 border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.3)]">
+        {/* Background Image: Slightly brighter with tuned overlay */}
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <Image
+            src="/society-luxury-dusk.jpg"
+            alt="Luxury Modern Residential Society Estate"
+            fill
+            priority
+            className="object-cover object-center scale-[1.01] brightness-110 contrast-[1.02]"
+            sizes="(max-width: 1200px) 100vw, 1200px"
+          />
+          {/* Lighter, warm cinematic overlay so the architecture and sky are clearly visible */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-black/35" />
+        </div>
 
-      {/* Subtle Grid Pattern Overlay */}
-      <div className="absolute inset-0 bg-dot-pattern opacity-30 pointer-events-none -z-10" />
+        {/* Top Architectural Card Badge Bar */}
+        <div className="relative z-30 flex items-center justify-between gap-3 w-full">
+          {/* Left Status Chip */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-xl border border-white/20 rounded-full shadow-md text-[11px] font-semibold text-white/90">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>MCS Act 1960 Digital Vaults</span>
+          </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
-          {/* Refined Eyebrow Pill */}
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="mb-4"
-          >
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 border border-indigo-200/90 shadow-[0_2px_10px_rgba(99,102,241,0.1)] backdrop-blur-md text-xs font-semibold text-indigo-700">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600" />
+          {/* Center Brand Emblem */}
+          <div className="hidden sm:flex items-center gap-1.5">
+            <span className="font-heading font-black text-xs sm:text-sm tracking-[0.25em] text-white/80 uppercase">
+              ZERO-TRUST ARCHITECTURE
+            </span>
+          </div>
+
+          {/* Right Status Pill */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-xl border border-white/20 rounded-full shadow-md text-[11px] font-semibold text-white/90">
+            <IonIcon name="shield-checkmark" size={13} className="text-indigo-400" />
+            <span>3-Signatory Quorum Ready</span>
+          </div>
+        </div>
+
+        {/* Hero Middle Content: Balanced Proportions & Elegant Typography */}
+        <div className="relative z-20 my-auto py-5 sm:py-7 lg:py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+          {/* Left Column: Eyebrow + Crisp Uppercase Headline + Pill CTA */}
+          <div className="lg:col-span-8 space-y-3.5 sm:space-y-4">
+            {/* Eyebrow */}
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+              className="flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] sm:text-xs font-semibold tracking-wider text-white/90 uppercase drop-shadow-sm">
+                Explore verified society document vaults & statutory approvals
               </span>
-              <span>Digital Society Governance Platform</span>
-              <span className="text-slate-300">|</span>
-              <span className="text-slate-600 font-medium">MCS Act 1960 Compliant</span>
-            </div>
-          </motion.div>
+            </motion.div>
 
-          {/* Refined, Well-Proportioned Hero Heading */}
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.08, ease: "easeOut" }}
-            className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-slate-900 font-heading leading-[1.18]"
-          >
-            Your Society. <span className="text-gradient-brand">Every Document.</span> One Place.
-          </motion.h1>
+            {/* Well-Proportioned Uppercase Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.08 }}
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black uppercase tracking-tight text-white font-heading leading-[1.08] drop-shadow-md"
+            >
+              MANAGE HOUSING SOCIETY VAULTS <br className="hidden sm:block" />
+              AND TURN UNCERTAINTY INTO TRUST
+            </motion.h1>
 
-          {/* Meaningful Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.16, ease: "easeOut" }}
-            className="mt-4 text-sm sm:text-base md:text-lg text-slate-600 max-w-2xl font-normal leading-relaxed"
-          >
-            Replace missing share certificates, physical paper files, and WhatsApp approval threads
-            with tamper-evident unit vaults, multi-signatory NOC workflows, and verified flat ownership records.
-          </motion.p>
+            {/* Pill CTA Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.16 }}
+              className="pt-1"
+            >
+              <Link href={session ? "/dashboard" : "/register"}>
+                <button
+                  type="button"
+                  className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full bg-white hover:bg-slate-100 text-slate-950 font-extrabold text-xs tracking-wider uppercase transition-all shadow-[0_6px_20px_rgba(255,255,255,0.25)] hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2.5 cursor-pointer"
+                >
+                  <span>{session ? "OPEN RESIDENT CONSOLE" : "REGISTER YOUR COOPERATIVE SOCIETY"}</span>
+                  <IonIcon name="arrow-forward-outline" size={14} />
+                </button>
+              </Link>
+            </motion.div>
+          </div>
 
-          {/* Refined Action Buttons */}
+          {/* Right Column: Subtitle Description */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.24, ease: "easeOut" }}
-            className="mt-6 flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto"
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="lg:col-span-4 lg:pl-4 pb-1"
           >
-            <Link href="/dashboard" className="w-full sm:w-auto">
-              <AppButton
-                variant="gradient"
-                size="md"
-                pill
-                rightIcon="arrow-forward-outline"
-                className="w-full sm:w-auto shadow-md"
-              >
-                Launch Live Prototype Console
-              </AppButton>
-            </Link>
-            <a href="#simulator" className="w-full sm:w-auto">
-              <AppButton
-                variant="outline"
-                size="md"
-                pill
-                leftIcon="cube-outline"
-                className="w-full sm:w-auto bg-white/95"
-              >
-                Test Interactive Simulator
-              </AppButton>
-            </a>
-          </motion.div>
-
-          {/* Trust Indicators */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.45, delay: 0.32 }}
-            className="mt-7 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-600 font-medium"
-          >
-            <span className="flex items-center gap-1.5 bg-white/80 px-3 py-1 rounded-full border border-slate-200/70 shadow-2xs">
-              <IonIcon name="checkmark-circle" className="text-emerald-500" size={15} />
-              Bank-Ready Share Certificates
-            </span>
-            <span className="flex items-center gap-1.5 bg-white/80 px-3 py-1 rounded-full border border-slate-200/70 shadow-2xs">
-              <IonIcon name="checkmark-circle" className="text-emerald-500" size={15} />
-              Instant 3-Signatory NOCs
-            </span>
-            <span className="flex items-center gap-1.5 bg-white/80 px-3 py-1 rounded-full border border-slate-200/70 shadow-2xs">
-              <IonIcon name="checkmark-circle" className="text-emerald-500" size={15} />
-              100% Multi-Tenant Isolation
-            </span>
+            <p className="text-xs sm:text-sm text-white/85 font-normal leading-relaxed border-l-2 border-white/30 pl-3.5 drop-shadow-sm">
+              Elevate your society with verified resident vaults. Experience instant 3-signatory digital NOCs,
+              tamper-proof share certificates, and automated Model Bylaw compliance.
+            </p>
           </motion.div>
         </div>
 
-        {/* Live Interactive Hero Simulator (Replaces static dead boxes) */}
+        {/* Bottom Floating Glass Console Bar */}
         <motion.div
-          id="simulator"
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 140, damping: 22, delay: 0.28 }}
-          className="mt-10 max-w-5xl mx-auto"
+          transition={{ duration: 0.45, delay: 0.25 }}
+          className="relative z-20 w-full"
         >
-          <div className="text-center mb-3">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-3 py-1 rounded-full">
-              Live Interactive Prototype Sandbox — Click Below to Test Workflows
-            </span>
+          <div className="bg-black/45 backdrop-blur-2xl border border-white/20 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 shadow-[0_15px_40px_rgba(0,0,0,0.4)]">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 items-center">
+              {/* Field 1: Society Name */}
+              <div className="relative p-2 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 transition-colors">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-white/60 block">
+                  Society
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown("society")}
+                  className="w-full flex items-center justify-between text-left text-xs font-bold text-white mt-0.5 cursor-pointer"
+                >
+                  <span className="truncate">{selectedSociety}</span>
+                  <IonIcon name="chevron-down-outline" size={12} className="text-white/70 shrink-0 ml-1" />
+                </button>
+                {activeDropdown === "society" && (
+                  <div className="absolute bottom-full left-0 mb-1.5 w-52 bg-slate-900 border border-white/20 rounded-xl p-1 shadow-2xl z-50 text-xs">
+                    {["Royal Palms CHS", "Greenwood Heights", "Sunrise Co-op Towers", "Grand Vista Complex"].map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSociety(item);
+                          setActiveDropdown(null);
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 text-white hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Field 2: Flat / Unit */}
+              <div className="relative p-2 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 transition-colors">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-white/60 block">
+                  Flat / Unit
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown("unit")}
+                  className="w-full flex items-center justify-between text-left text-xs font-bold text-white mt-0.5 cursor-pointer"
+                >
+                  <span className="truncate">{selectedUnit}</span>
+                  <IonIcon name="chevron-down-outline" size={12} className="text-white/70 shrink-0 ml-1" />
+                </button>
+                {activeDropdown === "unit" && (
+                  <div className="absolute bottom-full left-0 mb-1.5 w-52 bg-slate-900 border border-white/20 rounded-xl p-1 shadow-2xl z-50 text-xs">
+                    {["Wing A • Flat 104", "Wing B • Flat 402", "Wing C • Flat 301", "Wing D • Flat 502"].map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => {
+                          setSelectedUnit(item);
+                          setActiveDropdown(null);
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 text-white hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Field 3: Document */}
+              <div className="relative p-2 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 transition-colors">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-white/60 block">
+                  Document
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown("document")}
+                  className="w-full flex items-center justify-between text-left text-xs font-bold text-white mt-0.5 cursor-pointer"
+                >
+                  <span className="truncate">{selectedDocument}</span>
+                  <IonIcon name="chevron-down-outline" size={12} className="text-white/70 shrink-0 ml-1" />
+                </button>
+                {activeDropdown === "document" && (
+                  <div className="absolute bottom-full left-0 mb-1.5 w-52 bg-slate-900 border border-white/20 rounded-xl p-1 shadow-2xl z-50 text-xs">
+                    {["Bank Resale NOC", "Share Certificate", "Registered Sale Deed", "Maintenance No-Dues"].map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => {
+                          setSelectedDocument(item);
+                          setActiveDropdown(null);
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 text-white hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Field 4: Status */}
+              <div className="relative p-2 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 transition-colors">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-white/60 block">
+                  Status
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown("status")}
+                  className="w-full flex items-center justify-between text-left text-xs font-bold text-white mt-0.5 cursor-pointer"
+                >
+                  <span className="truncate">{selectedStatus}</span>
+                  <IonIcon name="chevron-down-outline" size={12} className="text-white/70 shrink-0 ml-1" />
+                </button>
+                {activeDropdown === "status" && (
+                  <div className="absolute bottom-full left-0 mb-1.5 w-52 bg-slate-900 border border-white/20 rounded-xl p-1 shadow-2xl z-50 text-xs">
+                    {["Verified & Active", "Quorum Approved (3/3)", "Awaiting Secretary Seal", "MCS Act Compliant"].map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStatus(item);
+                          setActiveDropdown(null);
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 text-white hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Button: White Square with Search Icon */}
+              <div className="flex items-center justify-end col-span-2 lg:col-span-1">
+                <button
+                  type="button"
+                  onClick={handleLaunchSimulator}
+                  aria-label="Launch Sandbox Simulator"
+                  className="w-full lg:w-12 h-10 lg:h-11 rounded-lg lg:rounded-xl bg-white text-slate-950 hover:bg-slate-100 flex items-center justify-center font-black transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  <IonIcon name="search-outline" size={18} className="stroke-[2.5]" />
+                </button>
+              </div>
+            </div>
           </div>
-          <InteractiveHeroSimulator />
         </motion.div>
       </div>
     </section>

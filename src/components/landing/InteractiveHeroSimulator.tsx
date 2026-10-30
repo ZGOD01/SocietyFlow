@@ -10,7 +10,6 @@ export function InteractiveHeroSimulator() {
   const [mode, setMode] = useState<SimulatorMode>("noc-flow");
 
   // State for NOC Flow Simulator
-  const [nocStep, setNocStep] = useState<number>(2); // 1 to 4
   const [isSignSecretary, setIsSignSecretary] = useState(true);
   const [isSignChairman, setIsSignChairman] = useState(false);
 

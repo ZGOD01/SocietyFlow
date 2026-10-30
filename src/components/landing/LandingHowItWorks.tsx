@@ -45,9 +45,9 @@ const steps = [
 
 export function LandingHowItWorks() {
   return (
-    <section id="how-it-works" className="py-20 md:py-32 bg-white relative overflow-hidden">
+    <section id="how-it-works" className="py-20 md:py-32 bg-transparent relative overflow-hidden">
       {/* Background Decor */}
-      <div className="absolute top-1/2 right-0 w-80 h-80 bg-indigo-500/5 blur-[90px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/2 right-0 w-80 h-80 bg-indigo-500/8 blur-[90px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading

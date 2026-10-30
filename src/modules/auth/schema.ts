@@ -19,14 +19,17 @@ export const registerSchema = z.object({
   }),
 });
 
-// Role-specific schemas for Prompt 1.1
+// Role-specific registration schemas
 export const ownerRegistrationSchema = z.object({
   accountType: z.literal("OWNER"),
   fullName: z.string().min(2, "Full legal name must be at least 2 characters"),
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
-  phone: z.string().min(10, "Enter a valid phone number").optional(),
+  phone: z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val),
+    z.string().min(10, "Enter a valid phone number").optional()
+  ),
   societyJoiningMethod: z.enum(["CODE", "SEARCH", "INVITE"]).default("CODE"),
   societyCode: z.string().min(3, "Society registration code or name is required"),
   wing: z.string().min(1, "Wing is required"),
@@ -46,7 +49,10 @@ export const tenantRegistrationSchema = z.object({
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
-  phone: z.string().min(10, "Enter a valid phone number").optional(),
+  phone: z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val),
+    z.string().min(10, "Enter a valid phone number").optional()
+  ),
   societyJoiningMethod: z.enum(["CODE", "INVITE"]).default("CODE"),
   societyCode: z.string().min(3, "Society registration code is required"),
   wing: z.string().min(1, "Wing is required"),
@@ -68,11 +74,23 @@ export const managementRegistrationSchema = z.object({
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string(),
-  phone: z.string().min(10, "Enter a valid phone number").optional(),
+  phone: z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val),
+    z.string().min(10, "Enter a valid phone number").optional()
+  ),
   position: z.enum(["SECRETARY", "CHAIRMAN", "TREASURER", "SOCIETY_MANAGER"], {
     error: "Select your intended managing committee position",
   }),
+  societyName: z.string().min(2, "Society name must be at least 2 characters").optional(),
   societyCode: z.string().min(3, "Society registration code / number is required"),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pinCode: z.string().optional(),
+  address: z.string().optional(),
+  wings: z.string().optional(),
+  floorsPerWing: z.coerce.number().min(1).max(100).optional(),
+  flatsPerFloor: z.coerce.number().min(1).max(30).optional(),
+  bhkType: z.string().optional(),
   resolutionNumber: z.string().min(2, "Committee resolution or invite token is required"),
   termsAccepted: z.boolean().refine((val) => val === true, {
     message: "You must accept the terms of governance",

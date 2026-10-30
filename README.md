@@ -142,17 +142,23 @@ npm run test
 
 ## 🗺️ Roadmap & Milestones
 
-- [x] **Prompt 1: Production Foundation (Current)**
+- [x] **Prompt 1: Production Foundation**
   - Initialized Next.js 16 with TypeScript Strict Mode
   - Configured design tokens, Outfit & Inter fonts, and Ionicons 5
   - Built 13 atomic reusable UI components
   - Developed sponsor-ready responsive landing page
   - Implemented responsive multi-tenant AppShell with role sandbox
   - Created 11 routes with clearly labeled architectural foundations
-- [ ] **Prompt 2: Identity & Session Layer**
-  - Integrate Auth.js with credentials & passwordless magic links
-  - Connect MongoDB Atlas with Mongoose user & session models
-  - Enforce role-based route middleware
+- [x] **Prompt 2: Identity, MongoDB Models & Session Layer**
+  - Configured MongoDB Atlas M0 Free Tier with cached connection pooling (`src/lib/db.ts`)
+  - Created 9 tenant-isolated Mongoose models: `User`, `Society`, `Building`, `Wing`, `Flat`, `SocietyMembership`, `FlatOccupancy`, `SocietyInvitation`, `AuditEvent`
+  - Implemented password hashing (bcrypt 12 rounds) and signed Edge-compatible JWT sessions (jose)
+  - Connected registration (`/register`), login (`/login`), and logout (`/api/auth/logout`)
+  - Built Edge route-protection proxy middleware (`src/middleware.ts`)
+  - Implemented server-side RBAC authorization helpers (`requireAuth`, `requireRole`, `requireSocietyMembership`, `requireFlatAccess`)
+  - Implemented sliding-window brute-force rate limiter (`src/lib/rate-limit.ts`)
+  - Created development seed script (`npm run seed`) with 2 societies and 11 role-based test accounts
+  - 25/25 automated unit tests passing (`npm run test`)
 - [ ] **Prompt 3: Document Vault & Cloudflare R2**
   - Cloudflare R2 presigned upload/download streams
   - Digital watermarking & file integrity hashing
@@ -162,3 +168,25 @@ npm run test
 - [ ] **Prompt 5: Auditor Desk & Reporting**
   - Grade 'A' compliance balance sheet exports
   - Statutory report generation for cooperative registrars
+
+---
+
+## 👥 Seed Credentials & Test Accounts
+
+Run `npm run seed` to populate your MongoDB Atlas cluster. All test accounts share the universal development password:
+
+> **Default Password:** `SocietyFlow@2026`
+
+| Role / Persona | Email | Assigned Society | Destination |
+| :--- | :--- | :--- | :--- |
+| **Flat Owner** | `owner@greenwood.in` | Greenwood Estates CHS | `/dashboard` |
+| **Tenant** | `tenant@greenwood.in` | Greenwood Estates CHS | `/dashboard?view=tenant` |
+| **Hon. Secretary** | `secretary@greenwood.in` | Greenwood Estates CHS | `/management/dashboard` |
+| **Chairman** | `chairman@greenwood.in` | Greenwood Estates CHS | `/management/dashboard` |
+| **Treasurer** | `treasurer@greenwood.in` | Greenwood Estates CHS | `/management/dashboard` |
+| **Society Manager** | `manager@greenwood.in` | Greenwood Estates CHS | `/management/dashboard` |
+| **Statutory Auditor / Partner** | `auditor@legaldesk.in` | Empanelled Partner | `/partner/dashboard` |
+| **Platform Super Admin** | `admin@societyflow.com` | Global Platform | `/admin/dashboard` |
+| **Multi-Society Resident** | `multi.user@societyflow.com` | Greenwood + Palmgrove | `/select-workspace` |
+| **Pending Verification Applicant** | `pending.owner@greenwood.in` | Greenwood Estates CHS | `/pending-approval` |
+

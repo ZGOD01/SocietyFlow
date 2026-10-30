@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import {
   PageHeader,
@@ -8,9 +9,39 @@ import {
   FormField,
   StatusBadge,
   IconContainer,
+  AppButton,
 } from "@/components/ui";
 
 export default function SettingsPage() {
+  const [societyData, setSocietyData] = React.useState<{
+    name: string;
+    code: string;
+    registrationNumber: string;
+    address: string;
+    city: string;
+    state: string;
+    pinCode: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/management/society")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.society) {
+          setSocietyData({
+            name: data.society.name || "TEST SOCIETY CHS Ltd.",
+            code: data.society.code || "TEST SOCIETY",
+            registrationNumber: data.society.registrationNumber || "MH/TES/2024",
+            address: data.society.address || "Main Complex, Pune",
+            city: data.society.city || "Pune",
+            state: data.society.state || "Maharashtra",
+            pinCode: data.society.pinCode || "411045",
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <AppShell>
       <PageHeader
@@ -46,22 +77,26 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 label="Society Legal Name"
-                defaultValue="Greenwood Heights Co-op Housing Society Ltd."
+                defaultValue={societyData?.name || "TEST SOCIETY CHS Ltd."}
+                key={societyData?.name}
                 disabled
               />
               <FormField
                 label="Cooperative Reg. Number"
-                defaultValue="PNA/PNA(1)/HSG/(TC)/14902/2019"
+                defaultValue={societyData?.registrationNumber || "MH/TES/2024"}
+                key={societyData?.registrationNumber}
                 disabled
               />
               <FormField
                 label="Registered Address"
-                defaultValue="Survey No. 42/1, Baner Road, Pune"
+                defaultValue={societyData?.address || "Main Complex, Pune"}
+                key={societyData?.address}
                 disabled
               />
               <FormField
                 label="State & Pin Code"
-                defaultValue="Maharashtra - 411045"
+                defaultValue={`${societyData?.state || "Maharashtra"} - ${societyData?.pinCode || "411045"}`}
+                key={societyData?.pinCode}
                 disabled
               />
             </div>
@@ -98,6 +133,14 @@ export default function SettingsPage() {
                 <input type="checkbox" defaultChecked className="accent-[#4F46E5] w-4 h-4" />
               </label>
             </div>
+
+            <div className="pt-2">
+              <Link href="/settings/notifications">
+                <AppButton variant="secondary" size="sm" rightIcon="arrow-forward-outline">
+                  Configure Email &amp; WhatsApp Channels
+                </AppButton>
+              </Link>
+            </div>
           </AppCard>
         </div>
 
@@ -105,10 +148,24 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <AppCard className="p-5 bg-white border-[#E5E7EB] space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
+              Member Profile &amp; Vault
+            </h4>
+            <p className="text-xs text-[#6B7280]">
+              Review verified society membership, allotted residential unit, onboarding property titles, and personal vault records.
+            </p>
+            <Link href="/profile" className="block">
+              <AppButton variant="hero" size="sm" className="w-full" rightIcon="arrow-forward-outline">
+                Open Member Profile
+              </AppButton>
+            </Link>
+          </AppCard>
+
+          <AppCard className="p-5 bg-white border-[#E5E7EB] space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
               Multi-Tenant Authority
             </h4>
             <div className="p-3 bg-[#EEF2FF] rounded-xl text-xs text-[#4F46E5] space-y-1">
-              <p className="font-bold">Tenant ID: soc-greenwood</p>
+              <p className="font-bold">Tenant ID: {societyData?.code || "TEST SOCIETY"}</p>
               <p className="text-[#6B7280]">
                 All database queries and document keys enforce this society partition.
               </p>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { SectionHeading, AppCard, IonIcon, StatusBadge } from "@/components/ui";
+import { SectionHeading, IonIcon } from "@/components/ui";
 
 export function LandingCalculator() {
   const [flatCount, setFlatCount] = useState<number>(180);
@@ -14,7 +14,7 @@ export function LandingCalculator() {
   const auditFinesPrevented = flatCount >= 100 ? "₹25,000+" : "₹10,000+";
 
   return (
-    <section className="py-16 md:py-24 bg-white border-b border-slate-200/80 relative overflow-hidden">
+    <section id="calculator" className="py-16 md:py-24 bg-transparent border-b border-slate-200/60 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading
           eyebrow="Tangible Society Impact"
@@ -62,7 +62,7 @@ export function LandingCalculator() {
                     How many units / flats are in your society?
                   </label>
                   <p className="text-xs text-slate-500">
-                    Slide to match your society's wing and flat count
+                    Slide to match your society&apos;s wing and flat count
                   </p>
                 </div>
                 <div className="flex items-baseline gap-1 bg-indigo-50 px-3.5 py-1.5 rounded-xl border border-indigo-200 self-start sm:self-auto">
