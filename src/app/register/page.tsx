@@ -63,10 +63,19 @@ export default function RegisterPage() {
   const [mgmtState, setMgmtState] = useState("Maharashtra");
   const [mgmtPinCode, setMgmtPinCode] = useState("411045");
   const [mgmtAddress, setMgmtAddress] = useState("");
+  const [mgmtWingCount, setMgmtWingCount] = useState<number>(2);
   const [mgmtWings, setMgmtWings] = useState("Wing A, Wing B");
   const [mgmtFloors, setMgmtFloors] = useState<number>(4);
   const [mgmtFlatsPerFloor, setMgmtFlatsPerFloor] = useState<number>(4);
   const [mgmtBhk, setMgmtBhk] = useState<string>("2 BHK");
+
+  const handleWingCountChange = (count: number) => {
+    const safeCount = Math.max(1, Math.min(26, count));
+    setMgmtWingCount(safeCount);
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const generated = Array.from({ length: safeCount }, (_, i) => `Wing ${letters[i] || i + 1}`).join(", ");
+    setMgmtWings(generated);
+  };
 
   // Validation & Loading
   const router = useRouter();
@@ -1022,18 +1031,36 @@ export default function RegisterPage() {
                                 placeholder="e.g. Plot 42, Senapati Bapat Road"
                               />
                               <FormField
-                                label="Society Wings (comma-separated)"
+                                label="Society Wings (Names comma-separated)"
                                 value={mgmtWings}
-                                onChange={(e) => setMgmtWings(e.target.value)}
-                                placeholder="e.g. Wing A, Wing B, Wing C"
-                                helperText="List all wings to populate the roster"
+                                onChange={(e) => {
+                                  setMgmtWings(e.target.value);
+                                  const parsed = e.target.value.split(",").filter((w) => w.trim());
+                                  if (parsed.length > 0) setMgmtWingCount(parsed.length);
+                                }}
+                                placeholder="e.g. Wing A, Wing B, Wing C, Wing D"
+                                helperText="List or edit wing names to populate the roster"
                               />
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                              <FormField
+                                label="Total Wings"
+                                helperText="Number of towers"
+                              >
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="26"
+                                  value={mgmtWingCount}
+                                  onChange={(e) => handleWingCountChange(Math.max(1, Number(e.target.value)))}
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold bg-white"
+                                />
+                              </FormField>
+
                               <FormField
                                 label="Floors per Wing"
-                                helperText="Vertical levels per tower"
+                                helperText="Levels per tower"
                               >
                                 <input
                                   type="number"
@@ -1041,13 +1068,13 @@ export default function RegisterPage() {
                                   max="100"
                                   value={mgmtFloors}
                                   onChange={(e) => setMgmtFloors(Math.max(1, Number(e.target.value)))}
-                                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold bg-white"
                                 />
                               </FormField>
 
                               <FormField
                                 label="Flats per Floor"
-                                helperText="Residential units per floor"
+                                helperText="Units per floor"
                               >
                                 <input
                                   type="number"
@@ -1055,13 +1082,13 @@ export default function RegisterPage() {
                                   max="30"
                                   value={mgmtFlatsPerFloor}
                                   onChange={(e) => setMgmtFlatsPerFloor(Math.max(1, Number(e.target.value)))}
-                                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold"
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold bg-white"
                                 />
                               </FormField>
 
                               <FormField
                                 label="Default Flat Config"
-                                helperText="Initial unit layout style"
+                                helperText="Initial layout"
                               >
                                 <select
                                   value={mgmtBhk}
@@ -1084,7 +1111,7 @@ export default function RegisterPage() {
                               </span>
                               <span className="font-mono font-bold text-indigo-700">
                                 {mgmtWings.split(",").filter((w) => w.trim()).length * mgmtFloors * mgmtFlatsPerFloor} Flats
-                                ({mgmtFloors * mgmtFlatsPerFloor} per wing across {mgmtWings.split(",").filter((w) => w.trim()).length} wings)
+                                ({mgmtFloors * mgmtFlatsPerFloor} per wing across {mgmtWings.split(",").filter((w) => w.trim()).length} wings: {mgmtWings.split(",").filter((w) => w.trim()).map((w) => w.trim()).join(", ")})
                               </span>
                             </div>
                           </div>
