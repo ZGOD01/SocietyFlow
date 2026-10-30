@@ -98,6 +98,12 @@ export async function connectDB(): Promise<typeof mongoose> {
     );
   }
 
+  if ((process.env.NODE_ENV === "production" || process.env.VERCEL) && (uri.includes("127.0.0.1") || uri.includes("localhost"))) {
+    throw new Error(
+      "Cannot connect to MongoDB: In Vercel production, MONGODB_URI is set to localhost. Please go to Vercel Settings -> Environment Variables, change MONGODB_URI to your MongoDB Atlas connection string (mongodb+srv://...), and click Redeploy."
+    );
+  }
+
   if (mongoose.connection.readyState === 1) {
     cached.conn = mongoose;
     return mongoose;
