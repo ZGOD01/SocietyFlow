@@ -615,6 +615,18 @@ export async function getManagementDashboardData(
           .lean();
 
         if (currentOwner) {
+          const ownerUserId =
+            (currentOwner.userId as any)?._id?.toString() ||
+            (typeof currentOwner.userId === "string" ? currentOwner.userId : "");
+          const applicantUserId = r.applicantId?.toString() || "";
+
+          const isSameOwner = Boolean(ownerUserId && applicantUserId && ownerUserId === applicantUserId);
+          const isConflict =
+            r.role === "OWNER" &&
+            r.status !== "APPROVED" &&
+            Boolean(ownerUserId) &&
+            !isSameOwner;
+
           existingOccupancy = {
             type: "OWNER",
             ownerName:
@@ -623,9 +635,7 @@ export async function getManagementDashboardData(
               "Current Verified Owner",
             ownerEmail:
               (currentOwner.userId as unknown as { email?: string })?.email || "N/A",
-            isConflict:
-              r.role === "OWNER" &&
-              currentOwner.userId?.toString() !== r.applicantId?.toString(),
+            isConflict,
           };
         }
       }
